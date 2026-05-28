@@ -1,6 +1,6 @@
 {
   "title": "Krishi Cobot — Agricultural Robotics",
-  "date": "September 2025 - February 2026",
+  "date": "2025-09",
   "tags": ["LiDAR", "Python", "ROS2 Humble", "OpenCV"],
   "description": "Differential-drive agricultural robot with ROS2 integration, LiDAR sensing, and vision-based fruit inspection.",
   "blocks": [
