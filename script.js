@@ -13,15 +13,34 @@ tick(); setInterval(tick, 1000);
 // ── CONTENT LOADER ───────────────────────────────────────
 async function loadContent() {
   try {
+    // Determine the base path for GitHub Pages compatibility
+    const baseUrl = window.location.pathname.includes('/portfolio/') 
+      ? '/portfolio/' 
+      : '/';
+    
     // Try multiple possible paths
     let response = null;
-    const paths = ['content/index.json', '/content/index.json', './content/index.json'];
+    const paths = [
+      baseUrl + 'content/index.json',
+      'content/index.json', 
+      '/content/index.json', 
+      './content/index.json'
+    ];
+    
+    console.log('Loading content from base:', baseUrl);
     
     for (const path of paths) {
       try {
+        console.log('Trying path:', path);
         response = await fetch(path);
-        if (response.ok) break;
-      } catch (e) { continue; }
+        if (response.ok) {
+          console.log('✓ Found content at:', path);
+          break;
+        }
+      } catch (e) { 
+        console.log('✗ Failed path:', path, e);
+        continue; 
+      }
     }
     
     if (response && response.ok) {
@@ -32,17 +51,20 @@ async function loadContent() {
     }
   } catch (e) {
     CONTENT = { projects: [], blogs: [] };
-    addLine('output-text dim', '⚠ No content/index.json found. Projects/blogs will be empty.');
     console.warn('Could not load content/index.json', e);
   }
 
   buildFS();
   printWelcome();
   
-  // Create buttons after content loads
+  // Create buttons after content loads - ALWAYS create them
   setTimeout(() => {
-    createCommandButtons();
-    createSuggestionBar();
+    try {
+      createCommandButtons();
+      createSuggestionBar();
+    } catch (err) {
+      console.error('Error creating buttons:', err);
+    }
   }, 100);
 }
 
