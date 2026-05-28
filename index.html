@@ -394,13 +394,14 @@ body::after {
   #output { padding: 16px; }
 }
 
-/* ── MOBILE: terminal-free layout ── */
+/* ── MOBILE: scrollable page layout ── */
 @media (max-width: 768px) {
-  /* Stack layout vertically */
-  #terminal-wrap { height: 100dvh; overflow-y: auto; overflow-x: hidden; }
+  /* Full scrollable page */
+  html, body { height: auto; overflow: auto; }
+  #terminal-wrap { height: auto; min-height: 100dvh; overflow: visible; display: flex; flex-direction: column; }
   #term-body { flex-direction: column; overflow: visible; flex: none; }
 
-  /* Show portrait panel full-width at top */
+  /* Portrait panel full-width, fully visible */
   #portrait-panel {
     display: flex !important;
     width: 100% !important;
@@ -412,21 +413,23 @@ body::after {
   }
   #portrait-img {
     width: 100%;
-    max-height: 60vw;
+    height: auto;
+    max-height: none;
     object-fit: cover;
     object-position: center top;
   }
   .portrait-info { padding: 12px 16px; }
 
-  /* Hide terminal output area and input completely */
+  /* Hide terminal output, input, suggestions */
   #output { display: none !important; }
   #input-row { display: none !important; }
   #suggestion-bar { display: none !important; }
 
-  /* Command buttons become main navigation */
+  /* Command buttons — 3 per row */
   #command-buttons {
-    padding: 12px 16px 16px;
+    padding: 12px 16px 12px;
     gap: 10px;
+    border-top: 1px solid #111;
   }
   #command-buttons button {
     padding: 10px 16px;
@@ -434,6 +437,53 @@ body::after {
     min-height: 44px;
     flex: 1 1 calc(33% - 10px);
   }
+  #command-buttons button.active {
+    background: #161616;
+    color: #aaa;
+    border-color: #2a2a2a;
+  }
+
+  /* Mobile content area — renders below buttons */
+  #mobile-content {
+    padding: 0 16px 40px;
+    min-height: 0;
+  }
+  #mobile-content .m-section-head {
+    color: #b0b0b0;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 18px 0 10px;
+    border-bottom: 1px solid #161616;
+    margin-bottom: 12px;
+    letter-spacing: 0.04em;
+  }
+  #mobile-content .m-text {
+    color: #555;
+    font-size: 12px;
+    line-height: 1.9;
+    margin-bottom: 6px;
+  }
+  #mobile-content .m-text.bright { color: #e2e2e2; }
+  #mobile-content .m-card {
+    border: 1px solid #1a1a1a;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    background: #0b0b0b;
+    transition: border-color 0.15s;
+  }
+  #mobile-content .m-card:active { border-color: #2a2a2a; }
+  #mobile-content .m-card-title { color: #b0b0b0; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  #mobile-content .m-card-meta  { color: #2e2e2e; font-size: 11px; margin-bottom: 6px; }
+  #mobile-content .m-card-desc  { color: #555; font-size: 12px; }
+  #mobile-content .m-skill-cat  { color: #e2e2e2; font-size: 12px; margin-top: 14px; margin-bottom: 3px; }
+  #mobile-content .m-skill-items { color: #444; font-size: 12px; padding-left: 10px; line-height: 1.8; }
+  #mobile-content .m-help-row {
+    display: flex; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid #111;
+    color: #555; font-size: 12px;
+  }
+  #mobile-content .m-help-row span:first-child { color: #888; }
 }
 @media (max-height: 500px) and (orientation: landscape) {
   #portrait-panel { display: none !important; }
@@ -499,6 +549,9 @@ body::after {
 
   <!-- COMMAND BUTTONS - MOVED OUTSIDE PORTRAIT PANEL -->
   <div id="command-buttons"></div>
+
+  <!-- MOBILE CONTENT AREA -->
+  <div id="mobile-content"></div>
 </div>
 
 <div id="statusbar">RW &nbsp;·&nbsp; UTF-8 &nbsp;·&nbsp; <span id="clock"></span></div>
