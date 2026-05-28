@@ -378,6 +378,48 @@ function openNano(entry) {
   });
 }
 
+// ── MOBILE OVERLAY ───────────────────────────────────────
+function isMobile() { return window.innerWidth <= 768; }
+
+function openMobileOverlay(title, renderFn) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:var(--bg);z-index:1000;
+    display:flex;flex-direction:column;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);
+  `;
+
+  const topbar = document.createElement('div');
+  topbar.style.cssText = 'background:#0e0e0e;border-bottom:1px solid #1e1e1e;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;color:#555;font-size:11px;flex-shrink:0;';
+  topbar.innerHTML = `<span style="letter-spacing:0.06em;">${esc(title)}</span>`;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕ close';
+  closeBtn.style.cssText = 'background:transparent;border:none;color:#444;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 8px;';
+  closeBtn.onclick = () => overlay.remove();
+  topbar.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'flex:1;overflow-y:auto;padding:20px 20px 32px;';
+
+  renderFn(body);
+
+  overlay.appendChild(topbar);
+  overlay.appendChild(body);
+  document.body.appendChild(overlay);
+}
+
+function mobileRenderText(body, lines) {
+  lines.forEach(([cls, text]) => {
+    if (!text) { body.appendChild(document.createElement('br')); return; }
+    const el = document.createElement('div');
+    if (cls === 'section-head') el.style.cssText = 'color:#b0b0b0;font-size:14px;font-weight:500;margin-bottom:6px;';
+    else if (cls === 'output-text bright') el.style.cssText = 'color:#e2e2e2;margin-bottom:4px;';
+    else el.style.cssText = 'color:#555;font-size:12px;margin-bottom:2px;';
+    el.textContent = text;
+    body.appendChild(el);
+  });
+}
+
 // ── COMMAND BUTTONS (TOUCH/CLICK FRIENDLY) ───────────────
 function createCommandButtons() {
   const container = document.getElementById('command-buttons');
@@ -395,7 +437,6 @@ function createCommandButtons() {
     { cmd: 'projects', label: '📁 projects' },
     { cmd: 'blogs',    label: '📝 blogs' },
     { cmd: 'contact',  label: '📞 contact' },
-    { cmd: 'clear',    label: '🗑️ clear' },
   ];
 
   cmds.forEach(c => {
@@ -403,12 +444,116 @@ function createCommandButtons() {
     btn.textContent = c.label;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      input.value = c.cmd;
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-      input.focus();
+      if (isMobile()) {
+        handleMobileCmd(c.cmd);
+      } else {
+        input.value = c.cmd;
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+        input.focus();
+      }
     });
     container.appendChild(btn);
   });
+}
+
+function handleMobileCmd(cmd) {
+  switch(cmd) {
+    case 'whoami':
+      openMobileOverlay('// about', body => {
+        mobileRenderText(body, [
+          ['section-head', 'Yash Vardhan Kumar'],
+          ['empty'],
+          ['output-text bright', 'Embedded & Robotics Engineer.'],
+          ['output-text', 'I build machines that think and move.'],
+          ['empty'],
+          ['output-text', 'Passionate about low-level systems, real-time control,'],
+          ['output-text', 'and the intersection of hardware and intelligence.'],
+        ]);
+      });
+      break;
+    case 'contact':
+      openMobileOverlay('// contact', body => {
+        mobileRenderText(body, [
+          ['section-head', '── Contact'],
+          ['empty'],
+          ['output-text', 'GitHub     →  github.com/yashvardhankumar'],
+          ['output-text', 'LinkedIn   →  linkedin.com/in/yashvardhankumar'],
+          ['output-text', 'Instagram  →  instagram.com/yashvardhankumar'],
+          ['output-text', 'Email      →  yash@example.com'],
+        ]);
+      });
+      break;
+    case 'skills':
+      openMobileOverlay('// skills', body => {
+        const cats = [
+          { cat: 'Embedded',  items: 'STM32 · ESP32 · AVR · RP2040 · FreeRTOS · Zephyr' },
+          { cat: 'Protocols', items: 'UART · SPI · I2C · CAN · USB · Ethernet' },
+          { cat: 'Robotics',  items: 'ROS2 · MoveIt · PID Control · Path Planning · SLAM' },
+          { cat: 'Languages', items: 'C · C++ · Python · Bash · Assembly (ARM)' },
+          { cat: 'Tools',     items: 'Git · KiCad · Fusion360 · Docker · Logic Analyzer' },
+        ];
+        cats.forEach(s => {
+          const head = document.createElement('div');
+          head.style.cssText = 'color:#e2e2e2;font-size:12px;margin-top:14px;margin-bottom:3px;';
+          head.textContent = `[${s.cat}]`;
+          body.appendChild(head);
+          const items = document.createElement('div');
+          items.style.cssText = 'color:#444;font-size:12px;padding-left:10px;line-height:1.8;';
+          items.textContent = s.items;
+          body.appendChild(items);
+        });
+      });
+      break;
+    case 'projects':
+      openMobileOverlay('// projects', body => {
+        if (!CONTENT.projects.length) { body.textContent = '(no projects found)'; return; }
+        CONTENT.projects.forEach(p => {
+          const card = document.createElement('div');
+          card.style.cssText = 'border:1px solid #1a1a1a;padding:14px 16px;margin-bottom:10px;cursor:pointer;background:#0b0b0b;';
+          card.innerHTML = `
+            <div style="color:#b0b0b0;font-size:13px;font-weight:500;margin-bottom:4px;">${esc(p.title)}</div>
+            <div style="color:#2e2e2e;font-size:11px;margin-bottom:6px;">${esc(p.date)} · ${(p.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 5px;margin-right:3px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>
+            <div style="color:#555;font-size:12px;">${esc(p.description)}</div>
+          `;
+          card.addEventListener('click', () => openNano(p));
+          body.appendChild(card);
+        });
+      });
+      break;
+    case 'blogs':
+      openMobileOverlay('// blogs', body => {
+        if (!CONTENT.blogs.length) { body.textContent = '(no blogs found)'; return; }
+        CONTENT.blogs.forEach(b => {
+          const card = document.createElement('div');
+          card.style.cssText = 'border:1px solid #1a1a1a;padding:14px 16px;margin-bottom:10px;cursor:pointer;background:#0b0b0b;';
+          card.innerHTML = `
+            <div style="color:#b0b0b0;font-size:13px;font-weight:500;margin-bottom:4px;">${esc(b.title)}</div>
+            <div style="color:#2e2e2e;font-size:11px;margin-bottom:6px;">${esc(b.date)} · ${(b.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 5px;margin-right:3px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>
+            <div style="color:#555;font-size:12px;">${esc(b.description)}</div>
+          `;
+          card.addEventListener('click', () => openNano(b));
+          body.appendChild(card);
+        });
+      });
+      break;
+    case 'help':
+      openMobileOverlay('// help', body => {
+        const cmds = [
+          ['👤 about',    'who is yash'],
+          ['🛠️ skills',   'tech stack & tools'],
+          ['📁 projects', 'view all projects'],
+          ['📝 blogs',    'read the blogs'],
+          ['📞 contact',  'get in touch'],
+        ];
+        cmds.forEach(([c, d]) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #111;color:#555;font-size:12px;';
+          row.innerHTML = `<span style="color:#888">${esc(c)}</span><span>${esc(d)}</span>`;
+          body.appendChild(row);
+        });
+      });
+      break;
+  }
 }
 
 // ── SUGGESTION BAR ───────────────────────────────────────
@@ -602,7 +747,7 @@ function printCard(entry) {
 function printWelcome() {
   const a = [
     '   ██████╗   ██████╗   ██████╗   ███████╗         ██╗   ██╗   █████╗   ███████╗   ██╗  ██╗',
-    '  ██╔════╝  ██╔══██╗  ██╔══██╗  ██╔════╝         ╚██╗ ██╔╝  ██╔══██╗  ██╔════╝   ██║  ██║',
+    '  ██╔════╝  ██╔══ ██╗  ██╔══██╗  ██╔════╝         ╚██╗ ██╔╝  ██╔══██╗  ██╔════╝   ██║  ██║',
     '  ██║       ██║   ██║  ██████╔╝  █████╗            ╚████╔╝   ███████║  ███████╗   ███████║',
     '  ██║       ██║   ██║  ██╔══██╗  ██╔══╝             ╚██╔╝    ██╔══██║  ╚════██║   ██╔══██║',
     '  ╚██████╗  ╚██████╔╝  ██║  ██║  ███████╗            ██║     ██║  ██║  ███████║   ██║  ██║',
