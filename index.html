@@ -74,8 +74,8 @@ body::after {
 .tbadge { font-size: 10px; color: #2a2a2a; letter-spacing: 0.08em; }
 
 /* ── LAYOUT ── */
-#terminal-wrap { height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
-#term-body { flex: 1; display: flex; overflow: hidden; }
+#terminal-wrap { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
+#term-body { flex: 1; display: flex; overflow: hidden; min-height: 200px; }
 
 /* ── OUTPUT ── */
 #output {
