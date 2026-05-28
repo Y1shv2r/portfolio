@@ -608,7 +608,7 @@ function printWelcome() {
     '  ╚██████╗  ╚██████╔╝  ██║  ██║  ███████╗            ██║     ██║  ██║  ███████║   ██║  ██║',
     '   ╚═════╝   ╚═════╝   ╚═╝  ╚═╝  ╚══════╝            ╚═╝     ╚═╝  ╚═╝  ╚══════╝   ╚═╝  ╚═╝',
   ];
-  a.forEach(l => addLine('output-text dim', l));
+  a.forEach(l => addLine('welcome-ascii', l));
   addEmpty();
   addLine('output-text dim', '  Type  help  for available commands.  Click buttons below ↓');
   addEmpty();
