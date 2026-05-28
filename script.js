@@ -3,7 +3,7 @@ const output = document.getElementById('output');
 const input  = document.getElementById('cmd-input');
 
 let cwd = '~', cmdHistory = [], histIdx = -1;
-let CONTENT = { projects: [], blogs: [] }; // loaded from content/index.json
+let CONTENT = { projects: [], blogs: [] };
 
 // clock
 const clockEl = document.getElementById('clock');
@@ -13,18 +13,33 @@ tick(); setInterval(tick, 1000);
 // ── CONTENT LOADER ───────────────────────────────────────
 async function loadContent() {
   try {
-    const res = await fetch('/portfolio/content/index.json');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    CONTENT = await res.json();
+    // Try multiple possible paths
+    let response = null;
+    const paths = ['content/index.json', '/content/index.json', './content/index.json'];
+    
+    for (const path of paths) {
+      try {
+        response = await fetch(path);
+        if (response.ok) break;
+      } catch (e) { continue; }
+    }
+    
+    if (response && response.ok) {
+      CONTENT = await response.json();
+      console.log('Content loaded:', CONTENT.projects.length, 'projects,', CONTENT.blogs.length, 'blogs');
+    } else {
+      throw new Error('No content found');
+    }
   } catch (e) {
-    // Fallback: run fine with empty content, show a hint
     CONTENT = { projects: [], blogs: [] };
-    console.warn('Could not load content/index.json — run build-index.js first.', e);
+    addLine('output-text dim', '⚠ No content/index.json found. Projects/blogs will be empty.');
+    console.warn('Could not load content/index.json', e);
   }
 
-  // Build virtual filesystem from loaded content
   buildFS();
   printWelcome();
+  
+  // Create buttons after content loads
   setTimeout(() => {
     createCommandButtons();
     createSuggestionBar();
@@ -42,8 +57,8 @@ function buildFS() {
     '~':          { type: 'dir', children: ['about.md', 'projects', 'blogs', 'contact.md'] },
     '~/about.md': { type: 'file' },
     '~/contact.md':{ type: 'file' },
-    '~/projects': { type: 'dir', children: projectSlugs },
-    '~/blogs':    { type: 'dir', children: blogSlugs },
+    '~/projects': { type: 'dir', children: projectSlugs.length ? projectSlugs : ['(no projects yet)'] },
+    '~/blogs':    { type: 'dir', children: blogSlugs.length ? blogSlugs : ['(no blogs yet)'] },
   };
 
   projectSlugs.forEach(s => { FS[`~/projects/${s}`] = { type: 'dir', children: ['meta.json'] }; });
@@ -91,7 +106,7 @@ function resolvePath(p) {
 }
 
 // ── STATIC FILE CONTENT ──────────────────────────────────
-const FILES = {
+const STATIC_FILES = {
   '~/about.md': [
     ['section-head', '# Yash Vardhan Kumar'], ['empty'],
     ['output-text bright', 'Embedded & Robotics Engineer.'],
@@ -109,11 +124,12 @@ const FILES = {
 };
 
 function printFile(path) {
-  const lines = FILES[path]; if (!lines) return;
+  const lines = STATIC_FILES[path]; 
+  if (!lines) return;
   lines.forEach(([cls, text]) => { if (cls === 'empty') addEmpty(); else addLine(cls, text); });
 }
 
-// ── BLOCK RENDERER (the GitHub README-style viewer) ──────
+// ── BLOCK RENDERER ──────────────────────────────────────
 function renderBlocks(entry) {
   if (!entry.blocks || !entry.blocks.length) {
     addLine('output-text dim', '(no content blocks)');
@@ -122,7 +138,6 @@ function renderBlocks(entry) {
 
   entry.blocks.forEach(block => {
     switch (block.type) {
-
       case 'text': {
         const p = document.createElement('p');
         p.className = 'block-text';
@@ -131,20 +146,15 @@ function renderBlocks(entry) {
         addEmpty();
         break;
       }
-
       case 'image': {
         const wrap = document.createElement('div');
         wrap.className = 'block-image';
-        // src is relative to the entry's folder
         const folder = `content/${entry.section}/${entry.slug}/`;
         const img = document.createElement('img');
         img.src = folder + block.src;
         img.alt = block.caption || block.src;
         img.loading = 'lazy';
-        img.onerror = function() {
-          // If image not found, show a placeholder box
-          this.replaceWith(makePlaceholder('image', block.src));
-        };
+        img.onerror = function() { this.outerHTML = `<div class="block-placeholder"><span class="ph-icon">▣</span><span class="ph-label">${esc(block.src)}</span><span class="ph-hint">(file not found)</span></div>`; };
         wrap.appendChild(img);
         if (block.caption) {
           const cap = document.createElement('div');
@@ -156,7 +166,6 @@ function renderBlocks(entry) {
         addEmpty();
         break;
       }
-
       case 'video': {
         const wrap = document.createElement('div');
         wrap.className = 'block-video';
@@ -165,9 +174,7 @@ function renderBlocks(entry) {
         video.src = folder + block.src;
         video.controls = true;
         video.preload = 'metadata';
-        video.onerror = function() {
-          this.replaceWith(makePlaceholder('video', block.src));
-        };
+        video.onerror = function() { this.outerHTML = `<div class="block-placeholder"><span class="ph-icon">▶</span><span class="ph-label">${esc(block.src)}</span><span class="ph-hint">(file not found)</span></div>`; };
         wrap.appendChild(video);
         if (block.caption) {
           const cap = document.createElement('div');
@@ -179,9 +186,7 @@ function renderBlocks(entry) {
         addEmpty();
         break;
       }
-
       case 'doc': {
-        // Rendered as a downloadable link card
         const folder = `content/${entry.section}/${entry.slug}/`;
         const card = document.createElement('a');
         card.href = folder + block.src;
@@ -189,11 +194,9 @@ function renderBlocks(entry) {
         card.className = 'block-doc';
         card.innerHTML = `
           <span class="block-doc-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
           </span>
           <span class="block-doc-name">${esc(block.src)}</span>
@@ -203,22 +206,10 @@ function renderBlocks(entry) {
         addEmpty();
         break;
       }
-
       default:
         addLine('output-text error', `Unknown block type: ${block.type}`);
     }
   });
-}
-
-function makePlaceholder(type, src) {
-  const box = document.createElement('div');
-  box.className = 'block-placeholder';
-  box.innerHTML = `
-    <span class="ph-icon">${type === 'video' ? '▶' : '▣'}</span>
-    <span class="ph-label">${esc(src)}</span>
-    <span class="ph-hint">(file not found in repo yet)</span>
-  `;
-  return box;
 }
 
 // ── NANO VIEWER ──────────────────────────────────────────
@@ -236,187 +227,144 @@ function openNano(entry) {
 
   const topbar = document.createElement('div');
   topbar.style.cssText = 'background:#0e0e0e;border-bottom:1px solid #1e1e1e;padding:6px 16px;display:flex;justify-content:space-between;align-items:center;color:#444;font-size:11px;flex-wrap:wrap;gap:8px;flex-shrink:0;';
-  topbar.innerHTML = `<span>GNU nano — <span style="color:#888">${esc(entry.title)}</span></span><span style="color:#2a2a2a">[ Read Only ]&nbsp;&nbsp;^X Exit</span>`;
+  topbar.innerHTML = `<span>GNU nano — <span style="color:#888">${esc(entry.title)}</span></span>`;
+
+  const closeTopBtn = document.createElement('button');
+  closeTopBtn.textContent = '✕ close';
+  closeTopBtn.style.cssText = 'background:transparent;border:none;color:#444;cursor:pointer;font-family:inherit;font-size:11px;';
+  closeTopBtn.onclick = () => closeNanoHandler();
+  topbar.appendChild(closeTopBtn);
 
   const body = document.createElement('div');
-  body.style.cssText = 'flex:1;overflow-y:auto;padding:24px 32px;scrollbar-width:thin;scrollbar-color:#1e1e1e transparent;';
+  body.style.cssText = 'flex:1;overflow-y:auto;padding:24px 32px;scrollbar-width:thin;';
 
-  // Header
-  body.innerHTML += `<div style="color:#b0b0b0;font-size:16px;font-weight:500;letter-spacing:0.04em;margin-bottom:4px;">${esc(entry.title)}</div>`;
+  body.innerHTML += `<div style="color:#b0b0b0;font-size:16px;font-weight:500;margin-bottom:4px;">${esc(entry.title)}</div>`;
   body.innerHTML += `<div style="color:#333;font-size:11px;margin-bottom:4px;">${esc(entry.date)}&nbsp;&nbsp;·&nbsp;&nbsp;${(entry.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 6px;margin-right:4px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>`;
   body.innerHTML += `<div style="color:#555;font-size:11px;margin-bottom:14px;">${esc(entry.description)}</div>`;
   body.innerHTML += `<hr style="border:none;border-top:1px solid #161616;margin:0 0 20px 0;">`;
 
-  // Blocks — append into body using a temp container trick
   const blockHost = document.createElement('div');
   body.appendChild(blockHost);
-
-  // Temporarily redirect output to blockHost, render blocks, restore
-  const realOutput = output;
-  // We'll render blocks directly into blockHost
-  renderBlocksInto(entry, blockHost);
+  
+  // Render blocks into the overlay
+  if (entry.blocks && entry.blocks.length) {
+    const folder = `content/${entry.section}/${entry.slug}/`;
+    entry.blocks.forEach(block => {
+      switch (block.type) {
+        case 'text': {
+          const p = document.createElement('p');
+          p.className = 'block-text';
+          p.textContent = block.content || '';
+          blockHost.appendChild(p);
+          blockHost.appendChild(document.createElement('br'));
+          break;
+        }
+        case 'image': {
+          const wrap = document.createElement('div');
+          wrap.className = 'block-image';
+          const img = document.createElement('img');
+          img.src = folder + block.src;
+          img.alt = block.caption || block.src;
+          img.style.maxWidth = '100%';
+          wrap.appendChild(img);
+          if (block.caption) {
+            const cap = document.createElement('div');
+            cap.className = 'block-caption';
+            cap.textContent = block.caption;
+            wrap.appendChild(cap);
+          }
+          blockHost.appendChild(wrap);
+          blockHost.appendChild(document.createElement('br'));
+          break;
+        }
+        case 'video': {
+          const wrap = document.createElement('div');
+          wrap.className = 'block-video';
+          const video = document.createElement('video');
+          video.src = folder + block.src;
+          video.controls = true;
+          video.style.width = '100%';
+          wrap.appendChild(video);
+          if (block.caption) {
+            const cap = document.createElement('div');
+            cap.className = 'block-caption';
+            cap.textContent = block.caption;
+            wrap.appendChild(cap);
+          }
+          blockHost.appendChild(wrap);
+          blockHost.appendChild(document.createElement('br'));
+          break;
+        }
+        case 'doc': {
+          const card = document.createElement('a');
+          card.href = folder + block.src;
+          card.target = '_blank';
+          card.className = 'block-doc';
+          card.innerHTML = `
+            <span class="block-doc-icon">📄</span>
+            <span class="block-doc-name">${esc(block.src)}</span>
+            <span class="block-doc-caption">${esc(block.caption || 'open')}</span>
+          `;
+          blockHost.appendChild(card);
+          blockHost.appendChild(document.createElement('br'));
+          break;
+        }
+      }
+    });
+  } else {
+    blockHost.innerHTML = '<p style="color:#444">(no content blocks)</p>';
+  }
 
   const botbar = document.createElement('div');
   botbar.style.cssText = 'background:#0e0e0e;border-top:1px solid #1e1e1e;padding:6px 16px;display:flex;gap:24px;font-size:11px;color:#333;flex-wrap:wrap;flex-shrink:0;';
-  botbar.innerHTML = `
-    <span><span style="background:#222;color:#666;padding:1px 6px;">^X</span>&nbsp;Exit</span>
-    <span><span style="background:#222;color:#666;padding:1px 6px;">ESC</span>&nbsp;Close</span>
-    <span><span style="background:#222;color:#666;padding:1px 6px;">↑↓</span>&nbsp;Scroll</span>
-  `;
+  botbar.innerHTML = `<span><span style="background:#222;color:#666;padding:1px 6px;">ESC</span>&nbsp;Close</span>`;
 
   overlay.appendChild(topbar);
   overlay.appendChild(body);
   overlay.appendChild(botbar);
   document.body.appendChild(overlay);
-  body.focus();
 
-  function closeNano(e) {
-    if (e.key==='q'||e.key==='Q'||(e.ctrlKey&&(e.key==='x'||e.key==='X'))||e.key==='Escape') {
+  function closeNanoHandler() {
+    overlay.remove();
+    nanoActive = false;
+    input.focus();
+    addLine('output-text dim', '[ nano closed ]');
+    addEmpty();
+    scrollBottom();
+  }
+
+  document.addEventListener('keydown', function closeNano(e) {
+    if (e.key === 'Escape') {
+      closeNanoHandler();
       document.removeEventListener('keydown', closeNano);
-      overlay.remove();
-      nanoActive = false;
-      input.focus();
-      addLine('output-text dim', '[ nano closed ]');
-      addEmpty();
-      scrollBottom();
-    }
-  }
-
-  // Close button on topbar
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '✕ close';
-  closeBtn.style.cssText = 'background:transparent;border:none;color:#444;cursor:pointer;font-family:inherit;font-size:11px;padding:4px 8px;';
-  closeBtn.addEventListener('click', () => closeNano({ key: 'Escape' }));
-  closeBtn.addEventListener('mouseenter', () => closeBtn.style.color = '#888');
-  closeBtn.addEventListener('mouseleave', () => closeBtn.style.color = '#444');
-  topbar.appendChild(closeBtn);
-
-  document.addEventListener('keydown', closeNano);
-}
-
-// Renders blocks into a specific container (used by nano overlay)
-function renderBlocksInto(entry, container) {
-  if (!entry.blocks || !entry.blocks.length) {
-    const p = document.createElement('p');
-    p.style.color = '#444';
-    p.textContent = '(no content blocks)';
-    container.appendChild(p);
-    return;
-  }
-
-  const folder = `content/${entry.section}/${entry.slug}/`;
-
-  entry.blocks.forEach(block => {
-    switch (block.type) {
-
-      case 'text': {
-        const p = document.createElement('p');
-        p.className = 'block-text';
-        p.textContent = block.content || '';
-        container.appendChild(p);
-        const sp = document.createElement('span');
-        sp.className = 'line empty';
-        container.appendChild(sp);
-        break;
-      }
-
-      case 'image': {
-        const wrap = document.createElement('div');
-        wrap.className = 'block-image';
-        const img = document.createElement('img');
-        img.src = folder + block.src;
-        img.alt = block.caption || block.src;
-        img.loading = 'lazy';
-        img.onerror = function() { this.replaceWith(makePlaceholder('image', block.src)); };
-        wrap.appendChild(img);
-        if (block.caption) {
-          const cap = document.createElement('div');
-          cap.className = 'block-caption';
-          cap.textContent = block.caption;
-          wrap.appendChild(cap);
-        }
-        container.appendChild(wrap);
-        const sp = document.createElement('span');
-        sp.className = 'line empty';
-        container.appendChild(sp);
-        break;
-      }
-
-      case 'video': {
-        const wrap = document.createElement('div');
-        wrap.className = 'block-video';
-        const video = document.createElement('video');
-        video.src = folder + block.src;
-        video.controls = true;
-        video.preload = 'metadata';
-        video.onerror = function() { this.replaceWith(makePlaceholder('video', block.src)); };
-        wrap.appendChild(video);
-        if (block.caption) {
-          const cap = document.createElement('div');
-          cap.className = 'block-caption';
-          cap.textContent = block.caption;
-          wrap.appendChild(cap);
-        }
-        container.appendChild(wrap);
-        const sp = document.createElement('span');
-        sp.className = 'line empty';
-        container.appendChild(sp);
-        break;
-      }
-
-      case 'doc': {
-        const card = document.createElement('a');
-        card.href = folder + block.src;
-        card.target = '_blank';
-        card.className = 'block-doc';
-        card.innerHTML = `
-          <span class="block-doc-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-          </span>
-          <span class="block-doc-name">${esc(block.src)}</span>
-          <span class="block-doc-caption">${esc(block.caption || 'open document')}</span>
-        `;
-        container.appendChild(card);
-        const sp = document.createElement('span');
-        sp.className = 'line empty';
-        container.appendChild(sp);
-        break;
-      }
-
-      default: {
-        const err = document.createElement('span');
-        err.className = 'line output-text error';
-        err.textContent = `Unknown block type: ${block.type}`;
-        container.appendChild(err);
-      }
     }
   });
 }
 
-// ── COMMAND BUTTONS ──────────────────────────────────────
+// ── COMMAND BUTTONS (TOUCH/CLICK FRIENDLY) ───────────────
 function createCommandButtons() {
-  if (document.getElementById('command-buttons')) return;
-  const inputRow = document.getElementById('input-row');
-  const container = document.createElement('div');
-  container.id = 'command-buttons';
+  const container = document.getElementById('command-buttons');
+  if (!container) {
+    console.warn('command-buttons container not found');
+    return;
+  }
+  
+  container.innerHTML = '';
 
   const cmds = [
-    { cmd: 'help',     label: ' help' },
-    { cmd: 'whoami',   label: ' about' },
-    { cmd: 'skills',   label: ' skills' },
-    { cmd: 'projects', label: ' projects' },
-    { cmd: 'blogs',    label: ' blogs' },
-    { cmd: 'contact',  label: ' contact' },
-    { cmd: 'clear',    label: ' clear' },
+    { cmd: 'help',     label: '❓ help' },
+    { cmd: 'whoami',   label: '👤 about' },
+    { cmd: 'skills',   label: '🛠️ skills' },
+    { cmd: 'projects', label: '📁 projects' },
+    { cmd: 'blogs',    label: '📝 blogs' },
+    { cmd: 'contact',  label: '📞 contact' },
+    { cmd: 'clear',    label: '🗑️ clear' },
   ];
 
   cmds.forEach(c => {
     const btn = document.createElement('button');
     btn.textContent = c.label;
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       input.value = c.cmd;
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
@@ -424,20 +372,15 @@ function createCommandButtons() {
     });
     container.appendChild(btn);
   });
-
-  inputRow.parentNode.insertBefore(container, inputRow.nextSibling);
 }
 
 // ── SUGGESTION BAR ───────────────────────────────────────
 let suggestionTimeout;
 function createSuggestionBar() {
-  if (document.getElementById('suggestion-bar')) return;
-  const inputRow = document.getElementById('input-row');
-  const bar = document.createElement('div');
-  bar.id = 'suggestion-bar';
-  inputRow.parentNode.insertBefore(bar, inputRow);
-
-  const allCmds = ['help','whoami','skills','projects','blogs','contact','clear','ls','cd','cat','nano','pwd'];
+  const bar = document.getElementById('suggestion-bar');
+  if (!bar) return;
+  
+  const allCmds = ['help', 'whoami', 'skills', 'projects', 'blogs', 'contact', 'clear', 'ls', 'cd', 'cat', 'nano', 'pwd'];
 
   input.addEventListener('input', () => {
     clearTimeout(suggestionTimeout);
@@ -445,7 +388,9 @@ function createSuggestionBar() {
       const val = input.value.trim().toLowerCase();
       bar.innerHTML = '';
       if (!val) return;
-      allCmds.filter(c => c.startsWith(val)).slice(0, 6).forEach(cmd => {
+      
+      const matches = allCmds.filter(c => c.startsWith(val));
+      matches.slice(0, 6).forEach(cmd => {
         const chip = document.createElement('span');
         chip.textContent = cmd;
         chip.addEventListener('click', () => {
@@ -480,19 +425,18 @@ const COMMANDS = {
     ].forEach(([c, d]) => addLine('output-text', `  ${c.padEnd(22)} ${d}`));
     addEmpty();
   },
-
   pwd()    { addLine('output-text bright', '/home/' + cwd.replace('~','yash')); addEmpty(); },
   whoami() { printFile('~/about.md'); addEmpty(); },
   contact(){ printFile('~/contact.md'); addEmpty(); },
   clear()  { output.innerHTML = ''; printWelcome(); },
-
+  
   history() {
     addEmpty();
     if (!cmdHistory.length) addLine('output-text dim', 'No history.');
     else cmdHistory.forEach((h, i) => addLine('output-text dim', `  ${String(i+1).padStart(3)}  ${h}`));
     addEmpty();
   },
-
+  
   skills() {
     addEmpty(); addLine('section-head', '── Technical Skills'); addHR();
     [
@@ -500,8 +444,7 @@ const COMMANDS = {
       { cat: 'Protocols', items: 'UART · SPI · I2C · CAN · USB · Ethernet' },
       { cat: 'Robotics',  items: 'ROS2 · MoveIt · PID Control · Path Planning · SLAM' },
       { cat: 'Languages', items: 'C · C++ · Python · Bash · Assembly (ARM)' },
-      { cat: 'Tools',     items: 'Git · KiCad · Fusion360 · Docker · Logic Analyzer · Oscilloscope' },
-      { cat: 'PCB & CAD', items: 'Altium · Eagle · SolidWorks · Fusion 360' },
+      { cat: 'Tools',     items: 'Git · KiCad · Fusion360 · Docker · Logic Analyzer' },
     ].forEach(s => {
       addLine('output-text bright', `[${s.cat}]`);
       addLine('output-text dim', `  ${s.items}`);
@@ -509,97 +452,86 @@ const COMMANDS = {
     });
     addEmpty();
   },
-
+  
   ls(args) {
     const target = args[0] ? resolvePath(args[0]) : cwd;
     const node = FS[target];
     addEmpty();
-    if (!node) { addLine('output-text error', `ls: cannot access '${args[0]}': No such file or directory`); addEmpty(); return; }
-
-    const isListable = (target === '~/projects' || target === '~/blogs');
-    if (isListable) {
+    if (!node) { addLine('output-text error', `ls: cannot access '${args[0]}'`); addEmpty(); return; }
+    
+    if (node.children) {
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
-      node.children.forEach(slug => {
+      node.children.forEach(item => {
         const s = document.createElement('span');
-        s.className = 'dir-entry';
-        s.style.cssText = 'min-width:200px;cursor:pointer;padding:4px 0;';
-        s.textContent = slug;
-        s.title = `nano ${slug}`;
+        s.className = node.type === 'dir' ? 'dir-entry' : 'file-entry';
+        s.style.cssText = 'min-width:180px;cursor:pointer;padding:4px 0;';
+        s.textContent = item;
         s.addEventListener('click', () => {
-          input.value = `nano ${slug}`;
+          if (node.type === 'dir' && item !== '(no projects yet)' && item !== '(no blogs yet)') {
+            input.value = `cd ${item}`;
+          } else if (STATIC_FILES[`~/${item}`]) {
+            input.value = `cat ${item}`;
+          } else {
+            input.value = `nano ${item}`;
+          }
           input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
         });
         row.appendChild(s);
       });
       output.appendChild(row);
-      addEmpty();
-      addLine('output-text dim', `  nano <name>  to open · ${node.children.length} item(s)`);
-    } else {
-      const dirs  = node.children.filter(c => !c.includes('.') || c.endsWith('/'));
-      const files = node.children.filter(c => c.includes('.') && !c.endsWith('/'));
-      if (dirs.length) {
-        const row = document.createElement('div'); row.style.cssText = 'display:flex;flex-wrap:wrap;';
-        dirs.forEach(d => { const s = document.createElement('span'); s.className = 'dir-entry'; s.textContent = d+'/'; row.appendChild(s); });
-        output.appendChild(row);
-      }
-      if (files.length) {
-        const row = document.createElement('div'); row.style.cssText = 'display:flex;flex-wrap:wrap;';
-        files.forEach(f => { const s = document.createElement('span'); s.className = 'file-entry'; s.textContent = f; row.appendChild(s); });
-        output.appendChild(row);
-      }
     }
     addEmpty();
   },
-
+  
   cd(args) {
     if (!args[0] || args[0] === '~') { cwd = '~'; updatePrompt(); addEmpty(); return; }
     const t = resolvePath(args[0]);
     const node = FS[t];
-    if (!node)                 { addLine('output-text error', `cd: no such file or directory: ${args[0]}`); addEmpty(); return; }
-    if (node.type !== 'dir')   { addLine('output-text error', `cd: not a directory: ${args[0]}`);           addEmpty(); return; }
+    if (!node) { addLine('output-text error', `cd: no such directory: ${args[0]}`); addEmpty(); return; }
+    if (node.type !== 'dir') { addLine('output-text error', `cd: not a directory: ${args[0]}`); addEmpty(); return; }
     cwd = t; updatePrompt(); addEmpty();
   },
-
+  
   cat(args) {
     if (!args[0]) { addLine('output-text error', 'cat: missing operand'); addEmpty(); return; }
     const t = resolvePath(args[0]);
     addEmpty();
-    if (FILES[t]) { printFile(t); addEmpty(); return; }
-    addLine('output-text error', `cat: ${args[0]}: No such file or directory`);
+    if (STATIC_FILES[t]) { printFile(t); addEmpty(); return; }
+    addLine('output-text error', `cat: ${args[0]}: No such file`);
     addEmpty();
   },
-
+  
   projects() {
     addEmpty(); addLine('section-head', '── Projects'); addHR();
-    if (!CONTENT.projects.length) { addLine('output-text dim', '(no projects found — run build-index.js)'); addEmpty(); return; }
+    if (!CONTENT.projects.length) { addLine('output-text dim', '(no projects found)'); addEmpty(); return; }
     CONTENT.projects.forEach(p => printCard(p));
     addEmpty();
-    addLine('output-text dim', 'cd projects  →  ls  →  nano <name>  to open');
+    addLine('output-text dim', 'cd projects  →  ls  →  nano <name>');
     addEmpty();
   },
-
+  
   blogs() {
     addEmpty(); addLine('section-head', '── Blogs'); addHR();
-    if (!CONTENT.blogs.length) { addLine('output-text dim', '(no blogs found — run build-index.js)'); addEmpty(); return; }
+    if (!CONTENT.blogs.length) { addLine('output-text dim', '(no blogs found)'); addEmpty(); return; }
     CONTENT.blogs.forEach(b => printCard(b));
     addEmpty();
-    addLine('output-text dim', 'cd blogs  →  ls  →  nano <name>  to open');
+    addLine('output-text dim', 'cd blogs  →  ls  →  nano <name>');
     addEmpty();
   },
-
+  
   nano(args) {
-    if (!args[0]) { addLine('output-text error', 'nano: specify a project or blog name'); addEmpty(); return; }
+    if (!args[0]) { addLine('output-text error', 'nano: specify a name'); addEmpty(); return; }
     const name = args.join('-').replace(/\.md$/, '');
-
+    
     if (name === 'about' || name === 'about.md') { addEmpty(); printFile('~/about.md'); addEmpty(); scrollBottom(); return; }
     if (name === 'contact' || name === 'contact.md') { addEmpty(); printFile('~/contact.md'); addEmpty(); scrollBottom(); return; }
-
+    
     const entry = findEntry(name);
     if (entry) { openNano(entry); }
-    else { addLine('output-text error', `nano: '${name}': No such file, project or blog`); addEmpty(); }
+    else { addLine('output-text error', `nano: '${name}': Not found`); addEmpty(); }
   },
-
+  
   open(args) {
     if (!args[0]) { addLine('output-text error', 'open: specify a name'); addEmpty(); return; }
     const entry = findEntry(args[0]);
@@ -608,7 +540,7 @@ const COMMANDS = {
       addLine('section-head', `── ${entry.title}`); addHR();
       printCard(entry);
       addEmpty();
-      addLine('output-text dim', `nano ${entry.slug}  to read in full`);
+      addLine('output-text dim', `nano ${entry.slug}  to read full`);
     } else {
       addLine('output-text error', `open: '${args[0]}' not found`);
     }
@@ -616,7 +548,6 @@ const COMMANDS = {
   },
 };
 
-// ── CARD RENDERER ─────────────────────────────────────────
 function printCard(entry) {
   const c = document.createElement('div');
   c.className = 'card';
@@ -642,7 +573,7 @@ function printWelcome() {
   ];
   a.forEach(l => addLine('output-text dim', l));
   addEmpty();
-  addLine('output-text dim', '  Type  help  for available commands.');
+  addLine('output-text dim', '  Type  help  for available commands.  Click buttons below ↓');
   addEmpty();
 }
 
@@ -655,12 +586,12 @@ input.addEventListener('keydown', e => {
     if (!raw) { addEmpty(); scrollBottom(); return; }
     const parts = raw.split(/\s+/), cmd = parts[0].toLowerCase(), args = parts.slice(1);
     if (COMMANDS[cmd]) COMMANDS[cmd](args);
-    else { addLine('output-text error', `command not found: ${cmd}`); addLine('output-text dim', 'Type  help  for available commands.'); addEmpty(); }
+    else { addLine('output-text error', `command not found: ${cmd}`); addLine('output-text dim', 'Type help for commands.'); addEmpty(); }
     scrollBottom();
     const bar = document.getElementById('suggestion-bar');
     if (bar) bar.innerHTML = '';
   }
-  if (e.key === 'ArrowUp')   { e.preventDefault(); if (histIdx < cmdHistory.length-1) { histIdx++; input.value = cmdHistory[histIdx]; } }
+  if (e.key === 'ArrowUp') { e.preventDefault(); if (histIdx < cmdHistory.length-1) { histIdx++; input.value = cmdHistory[histIdx]; } }
   if (e.key === 'ArrowDown') { e.preventDefault(); if (histIdx > 0) { histIdx--; input.value = cmdHistory[histIdx]; } else { histIdx = -1; input.value = ''; } }
   if (e.key === 'Tab') {
     e.preventDefault();
@@ -683,14 +614,26 @@ window.addEventListener('resize', () => {
 });
 
 // ── RESUME ────────────────────────────────────────────────
-function openResume()  { document.getElementById('resume-overlay').classList.add('active'); document.addEventListener('keydown', resumeKeyHandler); }
-function closeResume() { document.getElementById('resume-overlay').classList.remove('active'); document.removeEventListener('keydown', resumeKeyHandler); input.focus(); }
+function openResume() { 
+  const overlay = document.getElementById('resume-overlay');
+  if (overlay) overlay.classList.add('active'); 
+  document.addEventListener('keydown', resumeKeyHandler); 
+}
+function closeResume() { 
+  const overlay = document.getElementById('resume-overlay');
+  if (overlay) overlay.classList.remove('active'); 
+  document.removeEventListener('keydown', resumeKeyHandler); 
+  input.focus(); 
+}
 function resumeKeyHandler(e) { if (e.key === 'Escape') closeResume(); }
 function downloadResume() {
   const a = document.createElement('a');
-  a.href = document.getElementById('resume-img').src;
-  a.download = 'yash-vardhan-kumar-resume.png';
-  a.click();
+  const img = document.getElementById('resume-img');
+  if (img && img.src) {
+    a.href = img.src;
+    a.download = 'yash-vardhan-kumar-resume.png';
+    a.click();
+  }
 }
 
 // Click anywhere → focus input
