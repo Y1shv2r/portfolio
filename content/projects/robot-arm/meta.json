@@ -1,0 +1,30 @@
+{
+  "title": "Robotic Arm — 6-DOF",
+  "date": "2025-02",
+  "tags": ["Robotics", "C++", "ROS2", "IK"],
+  "description": "A 6-DOF robotic arm with full inverse kinematics, trajectory planning, and a custom BLDC controller.",
+  "blocks": [
+    {
+      "type": "text",
+      "content": "Built a 6-DOF robotic arm from scratch using ROS2 and custom BLDC motor controllers. Implemented full inverse kinematics pipeline using analytical and numerical methods."
+    },
+    {
+      "type": "image",
+      "src": "joint-assembly.jpg",
+      "caption": "Joint assembly — each joint uses a custom planetary gearbox"
+    },
+    {
+      "type": "text",
+      "content": "Trajectory planning with MoveIt2 — smooth interpolation across joint space. Custom PCB for motor driver with CAN bus communication between joints."
+    },
+    {
+      "type": "video",
+      "src": "demo-pick-place.mp4",
+      "caption": "Pick and place demo — 0.5kg payload at full reach"
+    },
+    {
+      "type": "text",
+      "content": "End-effector: 3-finger gripper with force feedback via strain gauges."
+    }
+  ]
+}

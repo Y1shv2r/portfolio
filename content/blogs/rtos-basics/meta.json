@@ -1,0 +1,29 @@
+{
+  "title": "FreeRTOS from Scratch",
+  "date": "2024-11",
+  "tags": ["RTOS", "FreeRTOS", "Scheduling"],
+  "description": "A practical intro to real-time operating systems — tasks, queues, semaphores, priorities.",
+  "blocks": [
+    {
+      "type": "text",
+      "content": "An RTOS gives you deterministic task scheduling — critical when timing matters. Tasks are independent threads with their own stack. Priority decides who runs when."
+    },
+    {
+      "type": "image",
+      "src": "task-states.jpg",
+      "caption": "FreeRTOS task state machine"
+    },
+    {
+      "type": "text",
+      "content": "FreeRTOS scheduler: preemptive by default — higher priority task always wins. Queues: safe way to pass data between tasks. ISR-safe variants available."
+    },
+    {
+      "type": "text",
+      "content": "Deadlock: Task A holds mutex 1 waiting for mutex 2. Task B holds mutex 2 waiting for mutex 1. Freeze. Priority inversion: low-priority task holds resource needed by high-priority task. Use priority inheritance."
+    },
+    {
+      "type": "text",
+      "content": "Stack overflow is silent and deadly — enable stack watermark checking in debug builds."
+    }
+  ]
+}

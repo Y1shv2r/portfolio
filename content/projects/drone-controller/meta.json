@@ -1,0 +1,30 @@
+{
+  "title": "Drone Flight Controller",
+  "date": "2025-05",
+  "tags": ["RTOS", "IMU", "PID", "FreeRTOS"],
+  "description": "Custom flight controller — sensor fusion, attitude estimation, cascaded PID loops.",
+  "blocks": [
+    {
+      "type": "text",
+      "content": "Built a custom flight controller running FreeRTOS on STM32H7. Sensor fusion: IMU (MPU6050) + barometer (BMP280) with complementary filter."
+    },
+    {
+      "type": "image",
+      "src": "fc-pcb.jpg",
+      "caption": "Flight controller PCB — 4-layer board, 50x50mm"
+    },
+    {
+      "type": "text",
+      "content": "Attitude estimation using quaternion-based Mahony filter — 1kHz update rate. Cascaded PID: outer loop for position, inner loop for angular rate."
+    },
+    {
+      "type": "video",
+      "src": "hover-test.mp4",
+      "caption": "First stable hover — 45 seconds continuous"
+    },
+    {
+      "type": "text",
+      "content": "Custom MAVLink implementation for ground station communication over UART."
+    }
+  ]
+}

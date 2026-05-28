@@ -1,0 +1,29 @@
+{
+  "title": "PID Tuning in Practice",
+  "date": "2024-09",
+  "tags": ["Control", "PID", "Robotics"],
+  "description": "Tuning PID controllers for real hardware — Ziegler-Nichols, manual tuning, anti-windup.",
+  "blocks": [
+    {
+      "type": "text",
+      "content": "PID = Proportional + Integral + Derivative. Three knobs, infinite headaches. P: reacts to current error. Too high → oscillation. Too low → slow response."
+    },
+    {
+      "type": "image",
+      "src": "pid-response.jpg",
+      "caption": "Step response comparison — under, over, and critically damped"
+    },
+    {
+      "type": "text",
+      "content": "I: eliminates steady-state error. Too high → integral windup, overshoot, instability. D: reacts to rate of change. Dampens oscillation. Amplifies sensor noise."
+    },
+    {
+      "type": "text",
+      "content": "Ziegler-Nichols: set I=0, D=0, increase P until sustained oscillation → use that as Ku, Tu. Anti-windup: clamp integrator when output saturates. Simple but essential."
+    },
+    {
+      "type": "text",
+      "content": "Real hardware tip: always filter your derivative term. Raw derivative on noisy sensor = disaster."
+    }
+  ]
+}
