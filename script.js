@@ -13,7 +13,7 @@ tick(); setInterval(tick, 1000);
 // ── CONTENT LOADER ───────────────────────────────────────
 async function loadContent() {
   try {
-    const res = await fetch('content/index.json');
+    const res = await fetch('/portfolio/content/index.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     CONTENT = await res.json();
   } catch (e) {
