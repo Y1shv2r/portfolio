@@ -1,0 +1,22 @@
+{
+  "title": "Krishi Cobot — Agricultural Robotics",
+  "date": "September 2025 - February 2026",
+  "tags": ["LiDAR", "Python", "ROS2 Humble", "OpenCV"],
+  "description": "Differential-drive agricultural robot with ROS2 integration, LiDAR sensing, and vision-based fruit inspection.",
+  "blocks": [
+    {
+      "type": "text",
+      "content": "Differential-drive eBot navigates the field while a stationary UR5 arm handles manipulation at a fixed station. An OpenCV pipeline classifies fruit quality — distinguishing bad from good using shape and colour features. ArUco markers on the fertiliser can and the robot guide UR5 pick-and-place targets. LiDAR-based 2D shape detection triggers contextual behaviour changes in navigation."
+    },
+    {
+      "type": "image",
+      "src": "picture.png",
+      "caption": "Top view — compact PCB with integrated sensor array"
+    },
+    {
+      "type": "video",
+      "src": "video.mp4",
+      "caption": "Pick and place at 0.5kg payload"
+    }
+  ]
+}
