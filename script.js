@@ -14,9 +14,23 @@ tick(); setInterval(tick, 1000);
 async function loadContent() {
   try {
     // Determine the base path for GitHub Pages compatibility
-    const baseUrl = window.location.pathname.includes('/portfolio/') 
-      ? '/portfolio/' 
-      : '/';
+    let baseUrl = '/';
+    
+    // Check if we're on GitHub Pages
+    if (window.location.hostname.includes('github.io')) {
+      // Get the path and determine base
+      const pathParts = window.location.pathname.split('/').filter(p => p);
+      console.log('GitHub Pages detected. Path parts:', pathParts);
+      
+      // If pathname is /portfolio/... use /portfolio/ as base
+      if (pathParts[0] === 'portfolio') {
+        baseUrl = '/portfolio/';
+      }
+      // If pathname is /<username>.github.io/... then base is /
+      else if (window.location.hostname.includes('.github.io')) {
+        baseUrl = '/';
+      }
+    }
     
     // Try multiple possible paths
     let response = null;
@@ -27,7 +41,7 @@ async function loadContent() {
       './content/index.json'
     ];
     
-    console.log('Loading content from base:', baseUrl);
+    console.log('Loading content. Base URL:', baseUrl, 'Location:', window.location.href);
     
     for (const path of paths) {
       try {
@@ -37,8 +51,9 @@ async function loadContent() {
           console.log('✓ Found content at:', path);
           break;
         }
+        console.log('✗ Failed:', path, response.status);
       } catch (e) { 
-        console.log('✗ Failed path:', path, e);
+        console.log('✗ Error:', path, e.message);
         continue; 
       }
     }
@@ -671,4 +686,14 @@ document.addEventListener('click', e => {
 });
 
 // ── BOOT ──────────────────────────────────────────────────
+// Ensure buttons are created immediately, even if async loading has issues
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    createCommandButtons();
+    createSuggestionBar();
+  } catch (err) {
+    console.error('Error creating buttons on DOMContentLoaded:', err);
+  }
+});
+
 loadContent();

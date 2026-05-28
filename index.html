@@ -74,8 +74,15 @@ body::after {
 .tbadge { font-size: 10px; color: #2a2a2a; letter-spacing: 0.08em; }
 
 /* ── LAYOUT ── */
-#terminal-wrap { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
-#term-body { flex: 1; display: flex; overflow: hidden; min-height: 200px; }
+#terminal-wrap { 
+  height: 100vh; 
+  display: flex; 
+  flex-direction: column; 
+  position: relative; 
+  z-index: 1;
+  overflow: hidden;
+}
+#term-body { flex: 1; display: flex; overflow: hidden; }
 
 /* ── OUTPUT ── */
 #output {
@@ -153,6 +160,7 @@ body::after {
   z-index: 10;
   flex-wrap: wrap;
   gap: 8px;
+  min-height: 40px;
 }
 #prompt-label { color: var(--prompt); white-space: pre; flex-shrink: 0; font-family: inherit; font-size: 13px; }
 #cmd-input {
@@ -176,6 +184,7 @@ body::after {
   border-top: 1px solid #111;
   background: var(--bg);
   flex-shrink: 0;
+  min-height: 40px;
 }
 #command-buttons button {
   background: #0e0e0e;
