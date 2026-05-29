@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-29T14:58:05.021Z",
+  "generated": "2026-05-29T15:07:58.150Z",
   "projects": [
     {
       "slug": "krishi-cobot",
@@ -14,10 +14,6 @@
       ],
       "description": "Differential-drive agricultural robot with ROS2 integration, LiDAR sensing, and vision-based fruit inspection.",
       "blocks": [
-        {
-          "type": "text",
-          "content": "Differential-drive eBot navigates the field while a stationary UR5 arm handles manipulation at a fixed station\nOpenCV pipeline classifies fruit quality — distinguishing bad from good using shape and colour features\nArUco markers on fertiliser can and bot guide UR5 pick-and-place targets\nLiDAR-based 2D shape detection triggers contextual behaviour changes in navigation"
-        },
         {
           "type": "text",
           "content": "Differential-drive eBot navigates the field while a stationary UR5 arm handles manipulation at a fixed station. An OpenCV pipeline classifies fruit quality — distinguishing bad from good using shape and colour features. ArUco markers on the fertiliser can and the robot guide UR5 pick-and-place targets. LiDAR-based 2D shape detection triggers contextual behaviour changes in navigation."
