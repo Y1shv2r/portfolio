@@ -55,6 +55,20 @@ function readSection(section) {
         }
       });
 
+      // Check for content.txt and inject as first text block if it exists
+      let blocks = meta.blocks || [];
+      const contentTxtPath = path.join(dir, slug, 'content.txt');
+      if (fs.existsSync(contentTxtPath)) {
+        const contentText = fs.readFileSync(contentTxtPath, 'utf8').trim();
+        if (contentText) {
+          // Insert content.txt as the first block (before any existing blocks)
+          blocks = [
+            { type: 'text', content: contentText },
+            ...blocks
+          ];
+        }
+      }
+
       return {
         slug,
         section,
@@ -62,7 +76,7 @@ function readSection(section) {
         date:        meta.date        || '',
         tags:        meta.tags        || [],
         description: meta.description || '',
-        blocks:      meta.blocks      || [],
+        blocks:      blocks,
       };
     })
     .filter(Boolean)
