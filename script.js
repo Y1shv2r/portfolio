@@ -10,54 +10,41 @@ const clockEl = document.getElementById('clock');
 function tick(){ clockEl.textContent = new Date().toTimeString().slice(0,8); }
 tick(); setInterval(tick, 1000);
 
+// ── BASE PATH ────────────────────────────────────────────
+function getBase() {
+  if (window.location.hostname.includes('github.io')) {
+    const parts = window.location.pathname.split('/').filter(p => p);
+    if (parts.length > 0) return '/' + parts[0] + '/';
+  }
+  return '/';
+}
+
 // ── CONTENT LOADER ───────────────────────────────────────
 async function loadContent() {
   try {
-    // Determine the base path for GitHub Pages compatibility
-    let baseUrl = '/';
-    
-    // Check if we're on GitHub Pages
-    if (window.location.hostname.includes('github.io')) {
-      // Get the path and determine base
-      const pathParts = window.location.pathname.split('/').filter(p => p);
-      console.log('GitHub Pages detected. Path parts:', pathParts);
-      
-      // If pathname is /portfolio/... use /portfolio/ as base
-      if (pathParts[0] === 'portfolio') {
-        baseUrl = '/portfolio/';
-      }
-      // If pathname is /<username>.github.io/... then base is /
-      else if (window.location.hostname.includes('.github.io')) {
-        baseUrl = '/';
-      }
-    }
-    
-    // Try multiple possible paths
+    const baseUrl = getBase();
     let response = null;
     const paths = [
       baseUrl + 'content/index.json',
-      'content/index.json', 
-      '/content/index.json', 
+      'content/index.json',
+      '/content/index.json',
       './content/index.json'
     ];
-    
+
     console.log('Loading content. Base URL:', baseUrl, 'Location:', window.location.href);
-    
+
     for (const path of paths) {
       try {
         console.log('Trying path:', path);
         response = await fetch(path);
-        if (response.ok) {
-          console.log('✓ Found content at:', path);
-          break;
-        }
+        if (response.ok) { console.log('✓ Found content at:', path); break; }
         console.log('✗ Failed:', path, response.status);
-      } catch (e) { 
+      } catch (e) {
         console.log('✗ Error:', path, e.message);
-        continue; 
+        continue;
       }
     }
-    
+
     if (response && response.ok) {
       CONTENT = await response.json();
       console.log('Content loaded:', CONTENT.projects.length, 'projects,', CONTENT.blogs.length, 'blogs');
@@ -71,8 +58,7 @@ async function loadContent() {
 
   buildFS();
   printWelcome();
-  
-  // Create buttons after content loads - ALWAYS create them
+
   setTimeout(() => {
     try {
       createCommandButtons();
@@ -161,7 +147,7 @@ const STATIC_FILES = {
 };
 
 function printFile(path) {
-  const lines = STATIC_FILES[path]; 
+  const lines = STATIC_FILES[path];
   if (!lines) return;
   lines.forEach(([cls, text]) => { if (cls === 'empty') addEmpty(); else addLine(cls, text); });
 }
@@ -172,6 +158,8 @@ function renderBlocks(entry) {
     addLine('output-text dim', '(no content blocks)');
     return;
   }
+
+  const folder = getBase() + `content/${entry.section}/${entry.slug}/`;
 
   entry.blocks.forEach(block => {
     switch (block.type) {
@@ -186,7 +174,6 @@ function renderBlocks(entry) {
       case 'image': {
         const wrap = document.createElement('div');
         wrap.className = 'block-image';
-        const folder = `content/${entry.section}/${entry.slug}/`;
         const img = document.createElement('img');
         img.src = folder + block.src;
         img.alt = block.caption || block.src;
@@ -206,7 +193,6 @@ function renderBlocks(entry) {
       case 'video': {
         const wrap = document.createElement('div');
         wrap.className = 'block-video';
-        const folder = `content/${entry.section}/${entry.slug}/`;
         const video = document.createElement('video');
         video.src = folder + block.src;
         video.controls = true;
@@ -224,7 +210,6 @@ function renderBlocks(entry) {
         break;
       }
       case 'doc': {
-        const folder = `content/${entry.section}/${entry.slug}/`;
         const card = document.createElement('a');
         card.href = folder + block.src;
         card.target = '_blank';
@@ -282,10 +267,9 @@ function openNano(entry) {
 
   const blockHost = document.createElement('div');
   body.appendChild(blockHost);
-  
-  // Render blocks into the overlay
+
   if (entry.blocks && entry.blocks.length) {
-    const folder = `content/${entry.section}/${entry.slug}/`;
+    const folder = getBase() + `content/${entry.section}/${entry.slug}/`;
     entry.blocks.forEach(block => {
       switch (block.type) {
         case 'text': {
@@ -390,18 +374,15 @@ function renderMobileContent(cmd) {
   const area = document.getElementById('mobile-content');
   if (!area) return;
 
-  // Toggle off if same button tapped again
   if (activeMobileCmd === cmd) {
     area.innerHTML = '';
     activeMobileCmd = null;
-    // Remove active class from all buttons
     document.querySelectorAll('#command-buttons button').forEach(b => b.classList.remove('active'));
     return;
   }
 
   activeMobileCmd = cmd;
 
-  // Mark active button
   document.querySelectorAll('#command-buttons button').forEach(b => {
     b.classList.toggle('active', b.dataset.cmd === cmd);
   });
@@ -510,7 +491,6 @@ function renderMobileContent(cmd) {
       break;
   }
 
-  // Scroll to content
   setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
 
@@ -552,7 +532,7 @@ let suggestionTimeout;
 function createSuggestionBar() {
   const bar = document.getElementById('suggestion-bar');
   if (!bar) return;
-  
+
   const allCmds = ['help', 'whoami', 'skills', 'projects', 'blogs', 'contact', 'clear', 'ls', 'cd', 'cat', 'nano', 'pwd'];
 
   input.addEventListener('input', () => {
@@ -561,7 +541,7 @@ function createSuggestionBar() {
       const val = input.value.trim().toLowerCase();
       bar.innerHTML = '';
       if (!val) return;
-      
+
       const matches = allCmds.filter(c => c.startsWith(val));
       matches.slice(0, 6).forEach(cmd => {
         const chip = document.createElement('span');
@@ -602,14 +582,14 @@ const COMMANDS = {
   whoami() { printFile('~/about.md'); addEmpty(); },
   contact(){ printFile('~/contact.md'); addEmpty(); },
   clear()  { output.innerHTML = ''; printWelcome(); },
-  
+
   history() {
     addEmpty();
     if (!cmdHistory.length) addLine('output-text dim', 'No history.');
     else cmdHistory.forEach((h, i) => addLine('output-text dim', `  ${String(i+1).padStart(3)}  ${h}`));
     addEmpty();
   },
-  
+
   skills() {
     addEmpty(); addLine('section-head', '── Technical Skills'); addHR();
     [
@@ -625,13 +605,13 @@ const COMMANDS = {
     });
     addEmpty();
   },
-  
+
   ls(args) {
     const target = args[0] ? resolvePath(args[0]) : cwd;
     const node = FS[target];
     addEmpty();
     if (!node) { addLine('output-text error', `ls: cannot access '${args[0]}'`); addEmpty(); return; }
-    
+
     if (node.children) {
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
@@ -656,7 +636,7 @@ const COMMANDS = {
     }
     addEmpty();
   },
-  
+
   cd(args) {
     if (!args[0] || args[0] === '~') { cwd = '~'; updatePrompt(); addEmpty(); return; }
     const t = resolvePath(args[0]);
@@ -665,7 +645,7 @@ const COMMANDS = {
     if (node.type !== 'dir') { addLine('output-text error', `cd: not a directory: ${args[0]}`); addEmpty(); return; }
     cwd = t; updatePrompt(); addEmpty();
   },
-  
+
   cat(args) {
     if (!args[0]) { addLine('output-text error', 'cat: missing operand'); addEmpty(); return; }
     const t = resolvePath(args[0]);
@@ -674,7 +654,7 @@ const COMMANDS = {
     addLine('output-text error', `cat: ${args[0]}: No such file`);
     addEmpty();
   },
-  
+
   projects() {
     addEmpty(); addLine('section-head', '── Projects'); addHR();
     if (!CONTENT.projects.length) { addLine('output-text dim', '(no projects found)'); addEmpty(); return; }
@@ -683,7 +663,7 @@ const COMMANDS = {
     addLine('output-text dim', 'cd projects  →  ls  →  nano <name>');
     addEmpty();
   },
-  
+
   blogs() {
     addEmpty(); addLine('section-head', '── Blogs'); addHR();
     if (!CONTENT.blogs.length) { addLine('output-text dim', '(no blogs found)'); addEmpty(); return; }
@@ -692,19 +672,19 @@ const COMMANDS = {
     addLine('output-text dim', 'cd blogs  →  ls  →  nano <name>');
     addEmpty();
   },
-  
+
   nano(args) {
     if (!args[0]) { addLine('output-text error', 'nano: specify a name'); addEmpty(); return; }
     const name = args.join('-').replace(/\.md$/, '');
-    
+
     if (name === 'about' || name === 'about.md') { addEmpty(); printFile('~/about.md'); addEmpty(); scrollBottom(); return; }
     if (name === 'contact' || name === 'contact.md') { addEmpty(); printFile('~/contact.md'); addEmpty(); scrollBottom(); return; }
-    
+
     const entry = findEntry(name);
     if (entry) { openNano(entry); }
     else { addLine('output-text error', `nano: '${name}': Not found`); addEmpty(); }
   },
-  
+
   open(args) {
     if (!args[0]) { addLine('output-text error', 'open: specify a name'); addEmpty(); return; }
     const entry = findEntry(args[0]);
@@ -787,16 +767,16 @@ window.addEventListener('resize', () => {
 });
 
 // ── RESUME ────────────────────────────────────────────────
-function openResume() { 
+function openResume() {
   const overlay = document.getElementById('resume-overlay');
-  if (overlay) overlay.classList.add('active'); 
-  document.addEventListener('keydown', resumeKeyHandler); 
+  if (overlay) overlay.classList.add('active');
+  document.addEventListener('keydown', resumeKeyHandler);
 }
-function closeResume() { 
+function closeResume() {
   const overlay = document.getElementById('resume-overlay');
-  if (overlay) overlay.classList.remove('active'); 
-  document.removeEventListener('keydown', resumeKeyHandler); 
-  input.focus(); 
+  if (overlay) overlay.classList.remove('active');
+  document.removeEventListener('keydown', resumeKeyHandler);
+  input.focus();
 }
 function resumeKeyHandler(e) { if (e.key === 'Escape') closeResume(); }
 function downloadResume() {
@@ -822,7 +802,6 @@ document.addEventListener('click', e => {
 });
 
 // ── BOOT ──────────────────────────────────────────────────
-// Ensure buttons are created immediately, even if async loading has issues
 window.addEventListener('DOMContentLoaded', () => {
   try {
     createCommandButtons();
