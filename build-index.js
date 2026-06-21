@@ -12,6 +12,15 @@ const path = require('path');
 const ROOT    = path.join(__dirname, 'content');
 const OUT     = path.join(ROOT, 'index.json');
 
+// Ongoing entries (no endDate) sort as most recent. Among ongoing entries,
+// or among entries with the same endDate, tie-break by startDate.
+function sortKey(entry) {
+  const end = (entry.endDate || '').trim();
+  const start = (entry.startDate || '').trim();
+  const primary = end || '9999-99'; // ongoing -> sorts above any finished entry
+  return `${primary}|${start}`;
+}
+
 function readSection(section) {
   const dir = path.join(ROOT, section);
   if (!fs.existsSync(dir)) return [];
@@ -37,7 +46,7 @@ function readSection(section) {
       }
 
       // Validate required fields
-      const required = ['title', 'date', 'tags', 'description', 'blocks'];
+      const required = ['title', 'startDate', 'tags', 'description', 'blocks'];
       for (const field of required) {
         if (!(field in meta)) {
           console.warn(`  ⚠  ${section}/${slug}/meta.json missing required field: "${field}"`);
@@ -59,14 +68,15 @@ function readSection(section) {
         slug,
         section,
         title:       meta.title       || slug,
-        date:        meta.date        || '',
+        startDate:   meta.startDate   || '',
+        endDate:     meta.endDate     || '',
         tags:        meta.tags        || [],
         description: meta.description || '',
         blocks:      meta.blocks || [],
       };
     })
     .filter(Boolean)
-    .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+    .sort((a, b) => sortKey(b).localeCompare(sortKey(a))); // newest/ongoing first
 }
 
 const index = {

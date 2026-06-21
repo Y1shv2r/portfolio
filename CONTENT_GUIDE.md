@@ -67,7 +67,8 @@ That's it. The GitHub Action rebuilds `content/index.json` automatically.
 ```jsonc
 {
   "title":       "My Project Name",         // shown as heading
-  "date":        "2025-06",                 // YYYY-MM, used for sorting (newest first)
+  "startDate":   "2025-06",                 // YYYY-MM, when work began
+  "endDate":     "",                        // YYYY-MM, or "" if still ongoing
   "tags":        ["Embedded", "C++"],       // shown as chips
   "description": "One sentence summary.",   // shown on cards in the terminal
 
@@ -77,6 +78,10 @@ That's it. The GitHub Action rebuilds `content/index.json` automatically.
   ]
 }
 ```
+
+Sorting: ongoing entries (no `endDate`) always sort first, as the most current
+work. Among finished entries, the most recent `endDate` sorts first. Display
+on the site shows as `Feb 2025 – Sep 2025` or `Feb 2025 – Ongoing`.
 
 ---
 
@@ -135,7 +140,8 @@ Renders as a clickable link card that opens the file in a new tab.
 ```json
 {
   "title": "6-DOF Robotic Arm",
-  "date": "2025-02",
+  "startDate": "2025-02",
+  "endDate": "2025-06",
   "tags": ["Robotics", "C++", "ROS2", "IK"],
   "description": "A 6-DOF arm with inverse kinematics and a custom BLDC controller.",
   "blocks": [
@@ -182,7 +188,8 @@ Renders as a clickable link card that opens the file in a new tab.
 ```json
 {
   "title": "UART Deep Dive",
-  "date": "2025-01",
+  "startDate": "2025-01",
+  "endDate": "",
   "tags": ["Embedded", "Protocols"],
   "description": "Everything about UART — framing, baud rate errors, DMA, and debugging tips.",
   "blocks": [
@@ -214,7 +221,7 @@ No image? No problem. Just don't add image blocks.
 | Files sit next to `meta.json` | `"src": "photo.jpg"` means `content/projects/my-cool-robot/photo.jpg` |
 | Order matters | Blocks render top to bottom exactly as written |
 | All fields except `blocks` items of type `text` are optional per block | `caption` is never required |
-| Sorting is by `date` | Format `YYYY-MM`, newest first |
+| Sorting is by `endDate` (ongoing first) | Format `YYYY-MM`, ties broken by `startDate` |
 | Push = publish | GitHub Action auto-rebuilds index on every push to `main` |
 
 ---

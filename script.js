@@ -94,6 +94,20 @@ function findEntry(slug) {
 
 // ── HELPERS ──────────────────────────────────────────────
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatMonth(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const mi = parseInt(m, 10) - 1;
+  return (MONTH_NAMES[mi] || m) + ' ' + y;
+}
+function formatDateRange(entry) {
+  const start = formatMonth(entry.startDate);
+  const end = (entry.endDate || '').trim() ? formatMonth(entry.endDate) : 'Ongoing';
+  if (!start) return end === 'Ongoing' ? '' : end;
+  return start + ' – ' + end;
+}
 function getPrompt(){ return `yash@portfolio:${cwd}$ `; }
 function updatePrompt(){ document.getElementById('prompt-label').textContent = getPrompt(); }
 function scrollBottom(){ output.scrollTop = output.scrollHeight; }
@@ -261,7 +275,7 @@ function openNano(entry) {
   body.style.cssText = 'flex:1;overflow-y:auto;padding:24px 32px;scrollbar-width:thin;';
 
   body.innerHTML += `<div style="color:#b0b0b0;font-size:16px;font-weight:500;margin-bottom:4px;">${esc(entry.title)}</div>`;
-  body.innerHTML += `<div style="color:#333;font-size:11px;margin-bottom:4px;">${esc(entry.date)}&nbsp;&nbsp;·&nbsp;&nbsp;${(entry.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 6px;margin-right:4px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>`;
+  body.innerHTML += `<div style="color:#333;font-size:11px;margin-bottom:4px;">${formatDateRange(entry)}&nbsp;&nbsp;·&nbsp;&nbsp;${(entry.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 6px;margin-right:4px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>`;
   body.innerHTML += `<div style="color:#555;font-size:11px;margin-bottom:14px;">${esc(entry.description)}</div>`;
   body.innerHTML += `<hr style="border:none;border-top:1px solid #161616;margin:0 0 20px 0;">`;
 
@@ -450,7 +464,7 @@ function renderMobileContent(cmd) {
         card.className = 'm-card';
         card.innerHTML = `
           <div class="m-card-title">${esc(p.title)}</div>
-          <div class="m-card-meta">${esc(p.date)} · ${(p.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 5px;margin-right:3px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>
+          <div class="m-card-meta">${formatDateRange(p)} · ${(p.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 5px;margin-right:3px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>
           <div class="m-card-desc">${esc(p.description)}</div>
         `;
         card.addEventListener('click', () => openNano(p));
@@ -466,7 +480,7 @@ function renderMobileContent(cmd) {
         card.className = 'm-card';
         card.innerHTML = `
           <div class="m-card-title">${esc(b.title)}</div>
-          <div class="m-card-meta">${esc(b.date)} · ${(b.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 5px;margin-right:3px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>
+          <div class="m-card-meta">${formatDateRange(b)} · ${(b.tags||[]).map(t=>`<span style="border:1px solid #1e1e1e;padding:1px 5px;margin-right:3px;color:#3a3a3a">${esc(t)}</span>`).join('')}</div>
           <div class="m-card-desc">${esc(b.description)}</div>
         `;
         card.addEventListener('click', () => openNano(b));
@@ -707,7 +721,7 @@ function printCard(entry) {
   c.style.cursor = 'pointer';
   c.innerHTML = `
     <div class="card-title">${esc(entry.title)}</div>
-    <div class="card-meta">${esc(entry.date)}&nbsp;&nbsp;·&nbsp;&nbsp;${(entry.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+    <div class="card-meta">${formatDateRange(entry)}&nbsp;&nbsp;·&nbsp;&nbsp;${(entry.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
     <div class="card-desc">${esc(entry.description)}</div>
   `;
   c.addEventListener('click', () => openNano(entry));
