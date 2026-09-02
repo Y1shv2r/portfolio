@@ -1,3 +1,56 @@
+// ── STARFIELD ─────────────────────────────────────────────
+// Builds one randomized star pattern (confined to the upper sky, clear of
+// the mountain ridge), then repeats it in a 1x2 horizontal tile (200%
+// wide, 100% tall). Animating that track by exactly one tile-width drifts
+// the whole field sideways in a single consistent direction, looping
+// seamlessly with no visible reset. Horizontal-only (no vertical scroll)
+// so stars never cycle down into the mountain/bottom area — see
+// @keyframes skyDrift in index.html. Each star also twinkles in
+// brightness on its own cycle for texture.
+function createStars() {
+  const track = document.getElementById('stars-track');
+  if (!track) return;
+
+  const COUNT = 140;
+  const descriptors = [];
+  for (let i = 0; i < COUNT; i++) {
+    descriptors.push({
+      left: Math.random() * 100,
+      top: Math.pow(Math.random(), 1.4) * 80, // keep well clear of the mountain ridge on any screen size
+      size: (Math.random() * 1.6 + 0.8).toFixed(2),
+      peak: (Math.random() * 0.5 + 0.45).toFixed(2),
+      floor: (Math.random() * 0.12 + 0.05).toFixed(2),
+      duration: (Math.random() * 5 + 2.5).toFixed(2),
+    });
+  }
+
+  // two tiles side by side (left 0%, left 50%), each an IDENTICAL copy of
+  // the pattern so the horizontal drift loops seamlessly
+  [0, 50].forEach(tx => {
+    const tile = document.createElement('div');
+    tile.className = 'stars-tile';
+    tile.style.left = tx + '%';
+    tile.style.top = '0';
+
+    const frag = document.createDocumentFragment();
+    descriptors.forEach(d => {
+      const s = document.createElement('span');
+      s.style.left = d.left + '%';
+      s.style.top = d.top + '%';
+      s.style.width = d.size + 'px';
+      s.style.height = d.size + 'px';
+      s.style.setProperty('--peak', d.peak);
+      s.style.setProperty('--floor', d.floor);
+      s.style.animationDuration = d.duration + 's';
+      s.style.animationDelay = (-Math.random() * d.duration).toFixed(2) + 's';
+      frag.appendChild(s);
+    });
+    tile.appendChild(frag);
+    track.appendChild(tile);
+  });
+}
+createStars();
+
 // ── STATE ────────────────────────────────────────────────
 const output = document.getElementById('output');
 const input  = document.getElementById('cmd-input');
@@ -7,8 +60,13 @@ let CONTENT = { projects: [], blogs: [] };
 
 // clock
 const clockEl = document.getElementById('clock');
-function tick(){ clockEl.textContent = new Date().toTimeString().slice(0,8); }
-tick(); setInterval(tick, 1000);
+function tick(){
+  if (clockEl) clockEl.textContent = new Date().toTimeString().slice(0,8);
+}
+if (clockEl) {
+  tick();
+  setInterval(tick, 1000);
+}
 
 // ── BASE PATH ────────────────────────────────────────────
 function getBase() {
@@ -491,11 +549,12 @@ function renderMobileContent(cmd) {
     case 'help':
       head('// help');
       [
-        ['👤 about',    'who is yash'],
-        ['🛠️ skills',   'tech stack & tools'],
-        ['📁 projects', 'view all projects'],
-        ['📝 blogs',    'read the blogs'],
-        ['📞 contact',  'get in touch'],
+        ['about',    'who is yash'],
+        ['projects', 'view all projects'],
+        ['blogs',    'read the blogs'],
+        ['skills',   'tech stack & tools'],
+        ['help',     'available commands'],
+        ['contact',  'get in touch'],
       ].forEach(([c, d]) => {
         const row = document.createElement('div');
         row.className = 'm-help-row';
@@ -508,36 +567,31 @@ function renderMobileContent(cmd) {
   setTimeout(() => area.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
 
+// ── RESPONSIVE UI ─────────────────────────────────────────
+function isMobile() {
+  return window.matchMedia('(max-width: 700px)').matches;
+}
+
 // ── COMMAND BUTTONS (TOUCH/CLICK FRIENDLY) ───────────────
 function createCommandButtons() {
   const container = document.getElementById('command-buttons');
   if (!container) { console.warn('command-buttons container not found'); return; }
-  container.innerHTML = '';
 
-  const cmds = [
-    { cmd: 'help',     label: '❓ help' },
-    { cmd: 'whoami',   label: '👤 about' },
-    { cmd: 'skills',   label: '🛠️ skills' },
-    { cmd: 'projects', label: '📁 projects' },
-    { cmd: 'blogs',    label: '📝 blogs' },
-    { cmd: 'contact',  label: '📞 contact' },
-  ];
-
-  cmds.forEach(c => {
-    const btn = document.createElement('button');
-    btn.textContent = c.label;
-    btn.dataset.cmd = c.cmd;
+  const buttons = container.querySelectorAll('button[data-cmd]');
+  buttons.forEach(btn => {
+    if (btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (isMobile()) {
-        renderMobileContent(c.cmd);
+      const cmd = btn.dataset.cmd;
+      if (isMobile() && typeof renderMobileContent === 'function') {
+        renderMobileContent(cmd);
       } else {
-        input.value = c.cmd;
-        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+        input.value = cmd;
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         input.focus();
       }
     });
-    container.appendChild(btn);
   });
 }
 
@@ -730,19 +784,10 @@ function printCard(entry) {
 
 // ── WELCOME ───────────────────────────────────────────────
 function printWelcome() {
-  const a = [
-    '   ██████╗   ██████╗   ██████╗   ███████╗         ██╗   ██╗   █████╗   ███████╗   ██╗  ██╗',
-    '  ██╔════╝  ██╔══ ██╗  ██╔══██╗  ██╔════╝         ╚██╗ ██╔╝  ██╔══██╗  ██╔════╝   ██║  ██║',
-    '  ██║       ██║   ██║  ██████╔╝  █████╗            ╚████╔╝   ███████║  ███████╗   ███████║',
-    '  ██║       ██║   ██║  ██╔══██╗  ██╔══╝             ╚██╔╝    ██╔══██║  ╚════██║   ██╔══██║',
-    '  ╚██████╗  ╚██████╔╝  ██║  ██║  ███████╗            ██║     ██║  ██║  ███████║   ██║  ██║',
-    '   ╚═════╝   ╚═════╝   ╚═╝  ╚═╝  ╚══════╝            ╚═╝     ╚═╝  ╚═╝  ╚══════╝   ╚═╝  ╚═╝',
-  ];
-  a.forEach(l => addLine('welcome-ascii', l));
-  addEmpty();
-  addLine('output-text dim', '  Type  help  for available commands.  Click buttons below ↓');
+  addLine('output-text dim', "Type 'help' for available commands. Click buttons below ↓");
   addEmpty();
 }
+
 
 // ── INPUT HANDLER ─────────────────────────────────────────
 input.addEventListener('keydown', e => {

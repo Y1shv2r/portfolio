@@ -23,7 +23,8 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--bg);
   color: var(--text);
   font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
@@ -55,24 +56,6 @@ body::after {
   z-index: 0;
 }
 
-/* ── TITLEBAR ── */
-#titlebar {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  user-select: none;
-  position: relative;
-  z-index: 10;
-}
-.dots { display: flex; gap: 7px; }
-.dot { width: 11px; height: 11px; border-radius: 50%; background: #1a1a1a; border: 1px solid #252525; }
-.ttitle { font-size: 11px; color: #383838; letter-spacing: 0.12em; text-transform: uppercase; }
-.tbadge { font-size: 10px; color: #2a2a2a; letter-spacing: 0.08em; }
-
 /* ── LAYOUT ── */
 #terminal-wrap { 
   height: 100vh; 
@@ -82,49 +65,28 @@ body::after {
   z-index: 1;
   overflow: hidden;
 }
-#term-body { flex: 1; display: flex; overflow: hidden; }
+#term-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
 
 /* ── OUTPUT ── */
 #output {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
-  padding: 22px 28px 8px;
+  /*
+   * The command prompt + navigation/social controls are an open
+   * terminal footer positioned over the bottom of the viewport.
+   * Reserve space for them so command output can never disappear
+   * underneath the footer.
+   */
+  padding: 22px 28px 180px;
+  box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: #1e1e1e transparent;
 }
 #output::-webkit-scrollbar { width: 3px; height: 3px; }
 #output::-webkit-scrollbar-track { background: transparent; }
 #output::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 2px; }
-
-/* ── PORTRAIT PANEL ── */
-#portrait-panel {
-  width: 300px;
-  flex-shrink: 0;
-  border-left: 1px solid #111;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0;
-  overflow-y: auto;
-  position: relative;
-  background: var(--bg);
-}
-#portrait-img {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  object-position: center top;
-  display: block;
-  mix-blend-mode: luminosity;
-  opacity: 0.75;
-  filter: contrast(1.1) brightness(0.9);
-  flex-shrink: 0;
-}
-.portrait-info { width: 100%; padding: 14px 16px 16px; border-top: 1px solid #111; background: var(--bg); }
-.pi-name { font-size: 10px; color: #666; letter-spacing: 0.12em; line-height: 2; }
-.pi-val  { font-size: 11px; color: #999; letter-spacing: 0.05em; }
 
 /* ── TERMINAL TEXT ── */
 .line { display: block; white-space: pre-wrap; word-break: break-word; }
@@ -157,21 +119,37 @@ body::after {
   word-break: normal !important;
 }
 
-/* ── INPUT ── */
+/* ── OPEN TERMINAL FOOTER ── */
+#terminal-footer {
+  position: absolute;
+  left: 24px; right: 24px; bottom: 24px;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  pointer-events: none;
+}
+#footer-left, #footer-right { pointer-events: auto; }
+#footer-left { min-width: 0; flex: 1; }
+#footer-right { width: 244px; flex: 0 0 244px; }
+
 #input-row {
   display: flex;
   align-items: center;
-  padding: 10px 28px 10px;
-  border-top: 1px solid #111;
-  background: var(--bg);
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 40px;
+  padding: 0 0 14px;
+  background: transparent;
+  border: none;
+  min-height: 0;
+  gap: 0;
 }
-#prompt-label { color: var(--prompt); white-space: pre; flex-shrink: 0; font-family: inherit; font-size: 13px; }
+#prompt-label {
+  color: #777;
+  white-space: pre;
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 13px;
+}
 #cmd-input {
   flex: 1;
   background: transparent;
@@ -180,124 +158,79 @@ body::after {
   color: var(--text);
   font-family: inherit;
   font-size: 16px;
-  caret-color: var(--text);
-  min-width: 120px;
+  caret-color: #aaa;
+  min-width: 80px;
+  padding: 0;
 }
 
-/* ── COMMAND BUTTONS ── */
 #command-buttons {
-  display: flex;
+  display: flex !important;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 28px 12px;
-  background: var(--bg);
-  flex-shrink: 0;
-  min-height: 40px;
+  padding: 0;
+  background: transparent;
+  min-height: 36px;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 #command-buttons button {
-  background: #0e0e0e;
-  border: 1px solid #1e1e1e;
-  color: #666;
-  padding: 8px 16px;
+  background: rgba(5,6,8,.26);
+  border: 1px solid rgba(220,220,220,.20);
+  color: #9a9a9a;
+  padding: 9px 16px;
   border-radius: 0;
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: background .15s, color .15s, border-color .15s;
   min-height: 36px;
   -webkit-tap-highlight-color: transparent;
 }
-#command-buttons button:hover { background: #161616; color: #aaa; }
+#command-buttons button:hover, #command-buttons button.active {
+  background: rgba(20,20,20,.48);
+  color: #ddd;
+  border-color: rgba(220,220,220,.38);
+}
 
-/* ── SUGGESTION BAR ── */
 #suggestion-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px 28px 0 28px;
-  background: var(--bg);
-  flex-shrink: 0;
-  min-height: 32px;
+  position: absolute; left: 24px; bottom: 88px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 0; background: transparent; z-index: 21;
 }
 #suggestion-bar span {
-  background: #0e0e0e;
-  border: 1px solid #1e1e1e;
-  color: #555;
-  padding: 4px 12px;
-  font-size: 10px;
-  font-family: monospace;
-  cursor: pointer;
-  transition: all 0.1s;
-  -webkit-tap-highlight-color: transparent;
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
+  background: rgba(5,6,8,.42);
+  border: 1px solid rgba(220,220,220,.16);
+  color: #777; padding: 4px 10px; font-size: 10px;
+  font-family: monospace; cursor: pointer; min-height: 28px;
+  display: inline-flex; align-items: center;
 }
-#suggestion-bar span:hover { background: #161616; color: #888; }
+#suggestion-bar span:hover { background: rgba(20,20,20,.55); color: #aaa; }
 
-/* ── CLICKABLE ENTRIES ── */
-.dir-entry:hover, .file-entry:hover { color: #ccc; }
-
-/* ── STATUSBAR ── */
-#statusbar {
-  position: fixed;
-  bottom: 0; right: 0;
-  z-index: 9999;
-  background: var(--bg2);
-  border-top: 1px solid #111;
-  border-left: 1px solid #111;
-  padding: 3px 14px;
-  font-size: 10px;
-  color: #252525;
-  letter-spacing: 0.1em;
-  font-family: 'JetBrains Mono', monospace;
-  pointer-events: none;
+/* ── SOCIAL / RESUME FOOTER ── */
+.social-btns {
+  display: flex; width: 100%; height: 48px;
+  border: 1px solid rgba(220,220,220,.20);
 }
-
-::selection { background: #222; color: var(--text); }
-
-/* ── SOCIAL BUTTONS ── */
-.social-btns { display: flex; gap: 0; width: 100%; border-top: 1px solid #111; flex-shrink: 0; }
 .social-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  border-right: 1px solid #111;
-  padding: 10px 0;
-  cursor: pointer;
-  color: #333;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  transition: background 0.15s, color 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
+  flex: 1; background: rgba(5,6,8,.26);
+  border: none; border-right: 1px solid rgba(220,220,220,.16);
+  padding: 0; cursor: pointer; color: #999;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; transition: background .15s, color .15s;
 }
 .social-btn:last-child { border-right: none; }
-.social-btn:hover { background: #111; color: #888; }
-.social-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-
-/* ── RESUME BUTTON ── */
+.social-btn:hover { background: rgba(20,20,20,.55); color: #ddd; }
+.social-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .resume-btn {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-top: 1px solid #111;
-  padding: 10px 0;
-  cursor: pointer;
-  color: #444;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  transition: background 0.15s, color 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-shrink: 0;
+  width: 100%; height: 44px; margin-top: 8px;
+  background: rgba(5,6,8,.26);
+  border: 1px solid rgba(220,220,220,.20);
+  padding: 0; cursor: pointer; color: #999;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .06em; transition: background .15s, color .15s, border-color .15s;
+  display: flex; align-items: center; justify-content: center;
 }
-.resume-btn:hover { background: #111; color: #888; }
+.resume-btn:hover { background: rgba(20,20,20,.55); color: #ddd; border-color: rgba(220,220,220,.38); }
 
 /* ── RESUME OVERLAY ── */
 #resume-overlay {
@@ -390,8 +323,7 @@ body::after {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
-  #portrait-panel { display: none; }
-  #output { padding: 16px; }
+  #output { padding: 16px 16px 150px; box-sizing: border-box; }
 }
 
 /* ── MOBILE: scrollable page layout ── */
@@ -401,25 +333,6 @@ body::after {
   #terminal-wrap { height: auto; min-height: 100dvh; overflow: visible; display: flex; flex-direction: column; }
   #term-body { flex-direction: column; overflow: visible; flex: none; }
 
-  /* Portrait panel full-width, fully visible */
-  #portrait-panel {
-    display: flex !important;
-    width: 100% !important;
-    flex-direction: column;
-    border-left: none;
-    border-bottom: 1px solid #111;
-    overflow: visible;
-    flex-shrink: 0;
-  }
-  #portrait-img {
-    width: 100%;
-    height: auto;
-    max-height: none;
-    object-fit: cover;
-    object-position: center top;
-  }
-  .portrait-info { padding: 12px 16px; }
-
   /* Hide terminal output, input, suggestions */
   #output { display: none !important; }
   #input-row { display: none !important; }
@@ -427,15 +340,14 @@ body::after {
 
   /* Command buttons — 3 per row */
   #command-buttons {
-    padding: 12px 16px 12px;
-    gap: 10px;
-    border-top: 1px solid #111;
+    padding: 0;
+    gap: 8px;
   }
   #command-buttons button {
-    padding: 10px 16px;
+    padding: 10px 14px;
     font-size: 11px;
-    min-height: 44px;
-    flex: 1 1 calc(33% - 10px);
+    min-height: 42px;
+    flex: 1 1 calc(33% - 8px);
   }
   #command-buttons button.active {
     background: #161616;
@@ -484,85 +396,301 @@ body::after {
     color: #555; font-size: 12px;
   }
   #mobile-content .m-help-row span:first-child { color: #888; }
+  #terminal-footer {
+    position: relative;
+    left: auto; right: auto; bottom: auto;
+    padding: 20px 16px 24px;
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 18px;
+  }
+  #footer-right { width: 100%; flex-basis: auto; }
+  #input-row { padding-bottom: 10px; }
+  #suggestion-bar { position: relative; left: auto; bottom: auto; padding: 0 16px; }
 }
 @media (max-height: 500px) and (orientation: landscape) {
-  #portrait-panel { display: none !important; }
   #output { display: block !important; padding: 8px 12px; }
   #input-row { display: flex !important; }
   .welcome-ascii { font-size: 6px; white-space: pre !important; overflow-x: auto; min-width: max-content; }
   .line.empty { height: 1.2em; }
 }
 .welcome-ascii { overflow-x: auto; white-space: pre !important; min-width: max-content; word-break: normal !important; }
+
+
+/* ── CONTINUOUS MOUNTAIN BACKGROUND ── */
+html, body { min-height: 100%; }
+body {
+  position: relative;
+  background: #050608 url('mountains.png') center top / cover fixed no-repeat;
+}
+body::after { display: none; }
+body::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  z-index: 9999;
+}
+
+/* ── SUBTLE STAR FIELD ── */
+/* The whole field drifts together in one consistent direction (like a
+   real star-trail time-lapse) rather than stars jittering independently.
+   Technique: a 2x2 tile of the SAME star pattern (200% x 200%) slides
+   diagonally by exactly one tile's width/height, so the loop point is
+   seamless — you never see a jump or reset, just continuous drift.
+   Individual stars still twinkle in brightness on top of that shared
+   motion, generated in JS (see createStars() in script.js). */
+.stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.stars-track {
+  position: absolute;
+  top: 0; left: 0;
+  width: 200%;
+  height: 100%;
+  animation: skyDrift 100s linear infinite;
+  will-change: transform;
+}
+
+.stars-tile {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+}
+
+.stars span {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(245, 245, 235, .9);
+  animation-name: starTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity;
+}
+
+/* the field drifts sideways only — no vertical scroll — so stars never
+   cycle down through the lower part of the viewport near the mountains */
+@keyframes skyDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* individual stars twinkle in brightness — min/max come from each star's
+   inline --peak/--floor custom properties so brightness varies per star */
+@keyframes starTwinkle {
+  0%, 100% { opacity: var(--floor, .12); }
+  50%      { opacity: var(--peak, .85); }
+}
+
+/* reduced-motion: freeze the shared drift (continuous panning is the
+   kind of motion this preference is meant to avoid) but keep the
+   per-star brightness twinkle, which isn't a vestibular trigger */
+@media (prefers-reduced-motion: reduce) {
+  .stars-track { animation: none; }
+}
+
+/* ── LANDING / HERO ── */
+#hero {
+  min-height: 100svh;
+  height: 100svh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+#hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to bottom,
+    rgba(3,4,6,.10) 0%,
+    rgba(3,4,6,.12) 48%,
+    rgba(3,4,6,.48) 82%,
+    rgba(3,4,6,.76) 100%);
+}
+.hero-inner {
+  width: min(760px, 90vw);
+  margin-top: -2vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@font-face {
+  font-family: "Azonix";
+  src: url("./fonts/Azonix.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.hero-name {
+
+  font-family: "Azonix", sans-serif;
+
+  font-size: clamp(76px, 10vw, 148px);
+
+  font-weight: 400;
+
+  letter-spacing: .28em;
+
+  padding-left: .28em;
+
+  line-height: .88;
+
+  color: #d8d0bd;
+
+  transform: scaleX(1.04);
+
+  transform-origin: center;
+
+  text-shadow: 0 2px 28px rgba(0,0,0,.55);
+
+  white-space: nowrap;
+}
+.hero-role {
+  margin-top: 20px;
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: .27em;
+  color: #8d8d8d;
+  white-space: nowrap;
+}
+.hero-rule {
+  width: 112px;
+  height: 1px;
+  margin: 18px auto 0;
+  background: rgba(210,210,210,.18);
+}
+.hero-tagline {
+  margin-top: 20px;
+  font-size: 25px;
+  line-height: 1.9;
+  font-weight: 300;
+  color: #8b8b8b;
+  letter-spacing: .035em;
+  text-shadow: 0 1px 12px rgba(0,0,0,.7);
+}
+.hero-scroll {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(205,205,205,.36);
+  font-size: 9px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hero-scroll::after {
+  content: '';
+  width: 1px;
+  height: 26px;
+  background: linear-gradient(to bottom, rgba(210,210,210,.4), transparent);
+}
+
+/* ── TERMINAL BECOMES THE SECOND SCREEN ── */
+#terminal-wrap {
+  min-height: 100svh;
+  height: 100svh;
+  background: rgba(5,6,8,.30);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#input-row, #command-buttons, #suggestion-bar { background: transparent; }
+.card { background: rgba(7,8,10,.62); }
+
+@media (max-width: 700px) {
+  .hero-name {  font-size: clamp(48px, 15vw, 76px);
+  letter-spacing: .20em;
+  padding-left: .20em;
+  transform: scaleX(1.02);}
+  .hero-role { font-size: 8px; letter-spacing: .18em; }
+  .hero-tagline { font-size: 10px; max-width: 310px; }
+  .hero-scroll { bottom: 20px; }
+}
+
 </style>
 </head>
 <body>
 
-<div id="terminal-wrap">
-  <div id="titlebar">
-    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    <div class="ttitle">yash@portfolio — terminal</div>
-    <div class="tbadge">bash — 80×24</div>
+<section id="hero" aria-label="Yash portfolio landing page">
+  <div class="stars" id="stars" aria-hidden="true">
+    <div class="stars-track" id="stars-track"></div>
   </div>
+  <div class="hero-inner">
+    <div class="hero-name">YASH</div>
+    <div class="hero-role">EMBEDDED/ROBOTICS</div>
+    <div class="hero-rule"></div>
+    <div class="hero-tagline">Making machines see, feel and act</div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">scroll</div>
+</section>
 
+<div id="terminal-wrap">
   <div id="term-body">
     <div id="output"></div>
+  </div>
 
-    <div id="portrait-panel">
-      <img id="portrait-img" src="profile.png" alt="Yash Vardhan Kumar" onerror="this.style.display='none'"/>
-      <div class="portrait-info">
-        <div class="pi-name">// yash vardhan kumar</div>
-        <div class="pi-val">embedded &amp; robotics</div>
-        <div class="pi-name" style="margin-top:6px">// location</div>
-        <div class="pi-val">india</div>
-        <div class="pi-name" style="margin-top:6px">// status</div>
-        <div class="pi-val">building things</div>
-        <div style="height:20px"></div>
+  <div id="terminal-footer">
+    <div id="footer-left">
+      <div id="input-row">
+        <span id="prompt-label">yash@portfolio:~$ </span>
+        <input id="cmd-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       </div>
+      <div id="command-buttons" aria-label="Portfolio navigation">
+        <button type="button" data-cmd="whoami">about</button>
+        <button type="button" data-cmd="projects">projects</button>
+        <button type="button" data-cmd="blogs">blogs</button>
+        <button type="button" data-cmd="skills">skills</button>
+        <button type="button" data-cmd="help">help</button>
+        <button type="button" data-cmd="contact">contact</button>
+      </div>
+    </div>
+    <div id="footer-right">
       <div class="social-btns">
-        <a class="social-btn" href="https://github.com/yashvardhankumar" target="_blank" title="GitHub">
-          <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        <a class="social-btn" href="https://linkedin.com/in/yashvardhankumar" target="_blank" rel="noopener noreferrer" title="LinkedIn" aria-label="LinkedIn">
+          <svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+          </svg>
         </a>
-        <a class="social-btn" href="https://linkedin.com/in/yashvardhankumar" target="_blank" title="LinkedIn">
-          <svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        <a class="social-btn" href="https://github.com/yashvardhankumar" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub">
+          <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
         </a>
-        <a class="social-btn" href="https://instagram.com/yashvardhankumar" target="_blank" title="Instagram">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-        </a>
-        <a class="social-btn" href="mailto:yash@example.com" title="Gmail">
-          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <a class="social-btn" href="mailto:yash@example.com" title="Email" aria-label="Email">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          </svg>
         </a>
       </div>
-      <button class="resume-btn" onclick="openResume()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        resume.pdf
-      </button>
+      <button class="resume-btn" onclick="openResume()" aria-label="Open resume">resume.pdf</button>
     </div>
   </div>
 
   <!-- SUGGESTION BAR - MOVED OUTSIDE PORTRAIT PANEL -->
   <div id="suggestion-bar"></div>
 
-  <div id="input-row">
-    <span id="prompt-label">yash@portfolio:~$ </span>
-    <input id="cmd-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus/>
-  </div>
-
-  <!-- COMMAND BUTTONS - MOVED OUTSIDE PORTRAIT PANEL -->
-  <div id="command-buttons"></div>
 
   <!-- MOBILE CONTENT AREA -->
   <div id="mobile-content"></div>
 </div>
 
-<div id="statusbar">RW &nbsp;·&nbsp; UTF-8 &nbsp;·&nbsp; <span id="clock"></span></div>
 
 <!-- Resume overlay -->
 <div id="resume-overlay">
   <div class="rv-topbar">
     <span>// resume.pdf</span>
     <div class="rv-topbar-right">
-      <button class="rv-dl-btn" onclick="downloadResume()">⬇ download</button>
-      <button class="rv-close-btn" onclick="closeResume()">✕ close</button>
+      <button class="rv-dl-btn" onclick="downloadResume()">download</button>
+      <button class="rv-close-btn" onclick="closeResume()">close</button>
     </div>
   </div>
   <div class="rv-body">
