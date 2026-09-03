@@ -1,0 +1,40 @@
+:root {
+  --bg: #080808;
+  --bg2: #0e0e0e;
+  --bg3: #141414;
+  --text: #e2e2e2;
+  --text-dim: #666;
+  --text-muted: #333;
+  --border: #1e1e1e;
+  --accent: #b0b0b0;
+  --prompt: #555;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+body {
+  overflow-x: hidden;
+}
+body {
+  position: relative;
+  background: #050608 url("/mountains.png") center top / cover fixed no-repeat;
+}
