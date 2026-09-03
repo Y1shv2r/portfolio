@@ -305,24 +305,17 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
         },
         {
           type: 'output',
-          text: 'GitHub     →  github.com/yashvardhankumar',
+          text: 'GitHub     →  github.com/Y1shv2r',
         },
         {
           type: 'output',
-          text: 'LinkedIn   →  linkedin.com/in/yashvardhankumar',
-        },
-        {
-          type: 'output',
-          text: 'Instagram  →  instagram.com/yashvardhankumar',
+          text: 'LinkedIn   →  linkedin.com/in/yash-vardhan-kumar',
         },
         {
           type: 'output',
           text: 'Email      →  yashvardhan.k2004@gmail.com',
         },
-        {
-          type: 'empty',
-          text: '',
-        },
+       
       ],
     }
 
@@ -1092,7 +1085,7 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
 
   <a
     className="social-btn"
-    href="https://github.com/yashvardhankumar"
+    href="https://github.com/Y1shv2r"
     aria-label="GitHub"
     target="_blank"
     rel="noopener noreferrer"
@@ -1105,7 +1098,7 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
 
   <a
     className="social-btn"
-    href="https://linkedin.com/in/yashvardhankumar"
+    href="https://linkedin.com/in/yash-vardhan-kumar"
     aria-label="LinkedIn"
     target="_blank"
     rel="noopener noreferrer"

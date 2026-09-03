@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Portfolio Content Manager</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#e8edf2;background:#0d1117}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0d1117}button,input,textarea{font:inherit}button{cursor:pointer}.app{max-width:1180px;margin:auto;padding:28px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}.brand h1{font-size:22px;margin:0}.brand p{color:#8b949e;margin:5px 0 0}.tabs{display:flex;gap:8px}.tabs button,.ghost,.danger,.primary{border:1px solid #30363d;background:#161b22;color:#e6edf3;border-radius:8px;padding:10px 14px}.tabs button.active,.primary{background:#238636;border-color:#2ea043}.grid{display:grid;grid-template-columns:330px 1fr;gap:18px}.panel{border:1px solid #30363d;background:#0f141b;border-radius:12px;overflow:hidden}.panel-head{padding:14px 16px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center}.list{max-height:calc(100vh - 190px);overflow:auto}.item{padding:14px 16px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;gap:12px}.item:hover{background:#161b22}.item.active{background:#1b222c}.item button{all:unset;cursor:pointer;flex:1}.item-title{font-weight:650}.item-meta{font-size:12px;color:#8b949e;margin-top:4px}.form{padding:20px}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{margin-bottom:16px}.field label{display:block;font-size:13px;color:#8b949e;margin-bottom:7px}.field input,.field textarea{width:100%;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:7px;padding:10px 11px;outline:none}.field textarea{min-height:105px;resize:vertical}.field input:focus,.field textarea:focus{border-color:#58a6ff}.tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}.tag{background:#21262d;border:1px solid #30363d;padding:5px 8px;border-radius:999px;font-size:12px}.tag button{border:0;background:none;color:#8b949e;padding:0 0 0 5px}.blocks{display:flex;flex-direction:column;gap:12px}.block{border:1px solid #30363d;border-radius:9px;padding:12px;background:#0d1117}.block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.block select{background:#161b22;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:7px}.block textarea{min-height:90px}.upload{border:1px dashed #484f58;border-radius:8px;padding:18px;text-align:center;color:#8b949e}.upload input{margin-top:8px}.actions{display:flex;gap:9px;justify-content:flex-end;padding-top:16px;border-top:1px solid #30363d;margin-top:20px}.status{margin:14px 0;padding:10px 12px;border-radius:7px;display:none}.status.ok{display:block;background:#0d2818;color:#7ee787}.status.err{display:block;background:#2d1114;color:#ff7b72}.hint{font-size:12px;color:#8b949e}.empty{padding:30px;color:#8b949e;text-align:center}@media(max-width:850px){.grid{grid-template-columns:1fr}.list{max-height:300px}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><h1>Portfolio Content Manager</h1><p>Manage content without touching the portfolio UI.</p></div>
+    <div class="tabs"><button id="projectsTab" class="active">Projects</button><button id="blogsTab">Blogs</button></div>
+  </div>
+  <div class="grid">
+    <section class="panel"><div class="panel-head"><strong id="listTitle">Projects</strong><button class="primary" id="newBtn">+ New</button></div><div id="list" class="list"></div></section>
+    <section class="panel"><div id="editor" class="form"></div></section>
+  </div>
+</div>
+<script>
+let state={projects:[],blogs:[]}, section='projects', editing=null, draft=null;
+const $=id=>document.getElementById(id);
+async function api(url,opts={}){const r=await fetch(url,opts);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Request failed');return d}
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
+async function load(){const d=await api('/api/content');state=d;renderList();if(editing) edit(editing.slug);else newEntry()}
+function renderList(){
+ $('listTitle').textContent=section==='projects'?'Projects':'Blogs';
+ $('list').innerHTML=(state[section]||[]).length?state[section].map(x=>`<div class="item ${editing?.slug===x.slug?'active':''}"><button onclick="edit('${esc(x.slug)}')"><div class="item-title">${esc(x.title)}</div><div class="item-meta">${esc((x.tags||[]).join(' · '))}</div></button><button class="danger" style="padding:6px 9px" onclick="removeEntry('${esc(x.slug)}')">Delete</button></div>`).join(''):'<div class="empty">No content yet.</div>';
+}
+function clone(x){return JSON.parse(JSON.stringify(x||{}))}
+function newEntry(){editing=null;draft={title:'',slug:'',date:'',startDate:'',endDate:'',tags:[],description:'',blocks:[]};renderList();renderEditor(draft,false)}
+function edit(slug){editing={slug};const x=state[section].find(x=>x.slug===slug);draft=clone(x);renderList();renderEditor(draft,false)}
+function renderEditor(x,keepDraft=true){
+ if(!keepDraft) draft=clone(x);
+ $('editor').innerHTML=`<div class="row"><div class="field"><label>Title</label><input id="title" value="${esc(draft.title)}" placeholder="Project title"></div><div class="field"><label>Slug</label><input id="slug" value="${esc(draft.slug)}" placeholder="auto-generated if blank"></div></div>
+ <div class="row"><div class="field"><label>Date / Start date</label><input id="startDate" value="${esc(draft.startDate||draft.date)}" placeholder="2026-09"></div><div class="field"><label>End date</label><input id="endDate" value="${esc(draft.endDate)}" placeholder="Leave blank for ongoing"></div></div>
+ <div class="field"><label>Tags — press Enter after each tag</label><input id="tagInput" placeholder="ROS2, Python, OpenCV..."><div class="tags" id="tags">${(draft.tags||[]).map((t,i)=>`<span class="tag">${esc(t)} <button onclick="removeTag(${i})">×</button></span>`).join('')}</div></div>
+ <div class="field"><label>Short description</label><textarea id="description" placeholder="Shown in the project/blog listing">${esc(draft.description)}</textarea></div>
+ <div class="field"><label>Content blocks</label><div class="blocks" id="blocks">${(draft.blocks||[]).map((b,i)=>blockHTML(b,i)).join('')}</div><button class="ghost" style="margin-top:10px" onclick="addBlock()">+ Add content block</button></div>
+ <div class="field"><label>Upload media</label><div class="upload">Upload files directly into this ${section.slice(0,-1)} folder.<br><input id="files" type="file" multiple accept="image/*,video/*,.pdf,.txt,.md"></div><div class="hint">After upload, add image/video/document blocks and use the exact filename shown.</div></div>
+ <div id="status" class="status"></div><div class="actions"><button class="ghost" onclick="newEntry()">Clear</button><button class="primary" onclick="save()">Save ${editing?'Changes':'Content'}</button><button class="primary" onclick="saveAndCommit()">Save + Commit</button></div>`;
+ ['title','slug','startDate','endDate','description'].forEach(id=>$(id).addEventListener('input',e=>{draft[id]=e.target.value;if(id==='startDate')draft.date=e.target.value}));
+ $('tagInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(v){draft.tags=[...(draft.tags||[]),v];e.target.value='';renderEditor(draft,true)}}});
+}
+function blockHTML(b,i){return `<div class="block"><div class="block-head"><select onchange="changeType(${i},this.value)"><option ${b.type==='text'?'selected':''}>text</option><option ${b.type==='image'?'selected':''}>image</option><option ${b.type==='video'?'selected':''}>video</option><option ${b.type==='doc'?'selected':''}>doc</option></select><button class="danger" style="padding:6px 9px" onclick="removeBlock(${i})">Remove</button></div>${b.type==='text'?`<textarea id="bc-${i}" placeholder="Write your content here...">${esc(b.content||'')}</textarea>`:`<div class="field"><label>Filename</label><input id="bs-${i}" value="${esc(b.src||'')}" placeholder="picture.png"></div><div class="field"><label>Caption</label><input id="bp-${i}" value="${esc(b.caption||'')}"></div>`}</div>`}
+function syncBlocks(){(draft.blocks||[]).forEach((b,i)=>{if(b.type==='text'){const el=$(`bc-${i}`);if(el)b.content=el.value}else{const src=$(`bs-${i}`),cap=$(`bp-${i}`);if(src)b.src=src.value;if(cap)b.caption=cap.value}})}
+function current(){syncBlocks();return {...draft,title:$('title').value,slug:$('slug').value,startDate:$('startDate').value,endDate:$('endDate').value,date:$('startDate').value,description:$('description').value,tags:[...(draft.tags||[])],blocks:clone(draft.blocks||[])}}
+function removeTag(i){draft.tags=(draft.tags||[]).filter((_,n)=>n!==i);renderEditor(draft,true)}
+function addBlock(){const x=current();draft=x;draft.blocks=[...(draft.blocks||[]),{type:'text',content:''}];renderEditor(draft,true);setTimeout(()=>{$(`bc-${draft.blocks.length-1}`)?.focus()},0)}
+function removeBlock(i){syncBlocks();draft.blocks=draft.blocks.filter((_,n)=>n!==i);renderEditor(draft,true)}
+function changeType(i,v){syncBlocks();const b=draft.blocks[i];b.type=v;if(v==='text'){delete b.src;delete b.caption;b.content=b.content||''}else{delete b.content;b.src=b.src||'';b.caption=b.caption||''}renderEditor(draft,true)}
+async function uploadFiles(slug){const files=[...($('files')?.files||[])];for(const file of files){const fd=new FormData();fd.append('file',file);await api(`/api/content/${section}/${encodeURIComponent(slug)}/upload`,{method:'POST',body:fd})}}
+async function save(commit=false){
+ try{const x=current();draft=x;if(!x.title.trim())throw new Error('Title is required');if(!x.slug.trim())x.slug=x.title;await api(`/api/content/${section}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(x)});await uploadFiles(x.slug);state=await api('/api/content');editing={slug:x.slug};showStatus('Saved successfully.');renderList();renderEditor(state[section].find(y=>y.slug===x.slug),false);if(commit) await commitOnly();}catch(e){showStatus(e.message,true)}
+}
+async function commitOnly(){try{await api('/api/git/commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:`Update ${section}: ${editing?.slug||'content'}`})});showStatus('Saved and committed. Push to GitHub to deploy.')}catch(e){showStatus(e.message,true)}}
+async function saveAndCommit(){await save(true)}
+async function removeEntry(slug){if(!confirm(`Delete ${slug}? This removes its folder and media files.`))return;try{await api(`/api/content/${section}/${encodeURIComponent(slug)}`,{method:'DELETE'});editing=null;await load();showStatus('Deleted.')}catch(e){showStatus(e.message,true)}}
+function showStatus(msg,err=false){const s=$('status');if(!s)return;s.textContent=msg;s.className='status '+(err?'err':'ok');setTimeout(()=>s.className='status',5000)}
+$('projectsTab').onclick=()=>{section='projects';editing=null;$('projectsTab').classList.add('active');$('blogsTab').classList.remove('active');load()};
+$('blogsTab').onclick=()=>{section='blogs';editing=null;$('blogsTab').classList.add('active');$('projectsTab').classList.remove('active');load()};
+$('newBtn').onclick=newEntry;load();
+</script>
+</body></html>
