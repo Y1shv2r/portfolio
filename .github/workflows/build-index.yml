@@ -29,6 +29,9 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
+      - name: Copy content to build
+        run: cp -r content dist/content
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -41,6 +44,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     needs: build
     runs-on: ubuntu-latest
 
