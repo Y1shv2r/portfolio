@@ -1,0 +1,22 @@
+{
+  "title": "My First Test Blog",
+  "date": "",
+  "startDate": "",
+  "endDate": "",
+  "tags": [],
+  "description": "Testing the new portfolio content manager.",
+  "blocks": [
+    {
+      "type": "text",
+      "content": "This is my first test blog.\n\nI'm testing whether the content manager correctly saves multiple blocks."
+    },
+    {
+      "type": "text",
+      "content": "This is the second block.\n\nIf you can still see the first block above this one, the block persistence bug is fixed."
+    },
+    {
+      "type": "text",
+      "content": "Third block — testing successful."
+    }
+  ]
+}
