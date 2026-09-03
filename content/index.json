@@ -1,6 +1,24 @@
 {
-  "generated": "2026-09-03T23:09:24.501Z",
+  "generated": "2026-09-03T23:16:52.513Z",
   "projects": [
+    {
+      "slug": "jb",
+      "section": "projects",
+      "title": "jb",
+      "startDate": "",
+      "endDate": "",
+      "tags": [],
+      "description": "",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "jbjk n "
+        },
+        {
+          "type": "image"
+        }
+      ]
+    },
     {
       "slug": "mlwl",
       "section": "projects",
