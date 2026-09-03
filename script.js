@@ -840,12 +840,9 @@ function closeResume() {
 function resumeKeyHandler(e) { if (e.key === 'Escape') closeResume(); }
 function downloadResume() {
   const a = document.createElement('a');
-  const img = document.getElementById('resume-img');
-  if (img && img.src) {
-    a.href = img.src;
-    a.download = 'yash-vardhan-kumar-resume.png';
-    a.click();
-  }
+  a.href = 'resume.pdf';
+  a.download = 'Yash-Vardhan-Kumar-Resume.pdf';
+  a.click();
 }
 
 // Click anywhere → focus input
