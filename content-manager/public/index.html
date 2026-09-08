@@ -37,7 +37,54 @@ function insertText(text){const ta=$('body');const s=ta.selectionStart,e=ta.sele
 function insertMedia(type){const name=prompt(`Enter the uploaded filename for this ${type}:`);if(!name)return;const caption=prompt('Caption (optional):')||'';const token=`{{${type}:${name}${caption?`|${caption}`:''}}}`;insertText(`\n\n${token}\n\n`)}
 function showSelectedFiles(){const files=[...$('files').files];$('uploaded').innerHTML=files.map(f=>`<span class="file-chip">${esc(f.name)}</span>`).join('')}
 function renderPreview(){const host=$('previewContent');if(!host||!draft)return;host.innerHTML='';const blocks=parseBody(draft.body||'');blocks.forEach(b=>{if(b.type==='text'){const p=document.createElement('p');p.textContent=b.content;host.appendChild(p)}else if(b.type==='highlight'){const p=document.createElement('p');const s=document.createElement('span');s.className='hl';s.textContent=b.content;p.appendChild(s);host.appendChild(p)}else if(b.type==='code'){const pre=document.createElement('div');pre.className='copy';pre.textContent=b.content;const btn=document.createElement('button');btn.textContent='Copy';btn.onclick=()=>navigator.clipboard?.writeText(b.content);pre.appendChild(btn);host.appendChild(pre)}else{const m=document.createElement('div');m.className='media';m.textContent=`${b.type}: ${b.src}`;host.appendChild(m)}})}
-function parseBody(body){const out=[];let i=0,text='';function flush(){if(text){out.push({type:'text',content:text});text=''}}while(i<body.length){if(body.startsWith('{{image:',i)||body.startsWith('{{video:',i)||body.startsWith('{{doc:',i)){flush();const end=body.indexOf('}}',i+2);if(end!==-1){const inner=body.slice(i+2,end);const [kind,...rest]=inner.split(':');const val=rest.join(':');const [src,...cap]=val.split('|');out.push({type:kind,src:src.trim(),caption:cap.join('|').trim()});i=end+2;continue}}}if(body.startsWith('{[',i)){flush();const end=body.indexOf(']}',i+2);if(end!==-1){out.push({type:'code',content:body.slice(i+2,end)});i=end+2;continue}}if(body[i]==='['){const end=body.indexOf(']',i+1);if(end!==-1){flush();out.push({type:'highlight',content:body.slice(i+1,end)});i=end+1;continue}}text+=body[i];i++}flush();return out}
+function parseBody(body){
+  const out=[];
+  let i=0;
+  let text='';
+  function flush(){
+    if(text){
+      out.push({type:'text',content:text});
+      text='';
+    }
+  }
+  while(i<body.length){
+    if(body.startsWith('{{image:',i)||body.startsWith('{{video:',i)||body.startsWith('{{doc:',i)){
+      flush();
+      const end=body.indexOf('}}',i+2);
+      if(end!==-1){
+        const inner=body.slice(i+2,end);
+        const [kind,...rest]=inner.split(':');
+        const val=rest.join(':');
+        const [src,...cap]=val.split('|');
+        out.push({type:kind,src:src.trim(),caption:cap.join('|').trim()});
+        i=end+2;
+        continue;
+      }
+    }
+    if(body.startsWith('{[',i)){
+      flush();
+      const end=body.indexOf(']}',i+2);
+      if(end!==-1){
+        out.push({type:'code',content:body.slice(i+2,end)});
+        i=end+2;
+        continue;
+      }
+    }
+    if(body[i]==='['){
+      const end=body.indexOf(']',i+1);
+      if(end!==-1){
+        flush();
+        out.push({type:'highlight',content:body.slice(i+1,end)});
+        i=end+1;
+        continue;
+      }
+    }
+    text+=body[i];
+    i++;
+  }
+  flush();
+  return out;
+}
 async function uploadFiles(slug){const files=[...($('files')?.files||[])];for(const file of files){const fd=new FormData();fd.append('file',file);await api(`/api/content/${section}/${encodeURIComponent(slug)}/upload`,{method:'POST',body:fd})}}
 async function save(commit=false){try{const x={...draft,title:$("title").value,slug:$("slug").value,startDate:$("startDate").value,endDate:$("endDate").value,date:$("startDate").value,description:$("description").value,body:$("body").value,tags:[...(draft.tags||[]) ]};if(!x.title.trim())throw new Error('Title is required');await uploadFiles((x.slug||x.title));const result=await api(`/api/content/${section}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(x)});state=result.content;editing={slug:result.slug};draft=clone(state[section].find(y=>y.slug===result.slug));draft.body=x.body;showStatus('Saved successfully.');renderList();renderEditor();if(commit)await commitOnly()}catch(e){showStatus(e.message,true)}}
 async function commitOnly(){try{await api('/api/git/commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:`Update ${section}: ${editing?.slug||'content'}`})});showStatus('Saved and committed. Push to GitHub to deploy.')}catch(e){showStatus(e.message,true)}}

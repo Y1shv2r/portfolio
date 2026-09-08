@@ -1,5 +1,214 @@
 {
-  "generated": "2026-09-07T03:51:25.469Z",
+  "generated": "2026-09-08T15:22:42.931Z",
   "projects": [],
-  "blogs": []
+  "blogs": [
+    {
+      "slug": "ssh-over-usb-on-a-raspberry-pi-zero-v1-3",
+      "section": "blogs",
+      "title": "SSH Over USB on a Raspberry Pi Zero v1.3",
+      "startDate": "2026-06",
+      "endDate": "2026-07",
+      "tags": [],
+      "description": "A practical guide to accessing a Raspberry Pi Zero v1.3 over SSH using a single USB data cable, replacing the need for a USB-to-TTL adapter and additional networking hardware.",
+      "body": "SSH Over USB on a Raspberry Pi Zero v1.3\n\nWorking with a Raspberry Pi Zero v1.3 is great until you actually have to develop on it.\n\nThe Pi Zero v1.3 does not have a built-in network adapter, Wi-Fi, Bluetooth, or an Ethernet port. This makes something as simple as accessing the terminal remotely a little inconvenient.\n\nInitially, my setup required a USB-to-TTL adapter for serial access and a separate power cable for powering the Pi. While this worked, carrying multiple cables and adapters every time I wanted to work with the Pi was unnecessary.\n\nI wanted to simplify the setup.\n\nInstead of carrying a USB-to-TTL adapter for serial communication and a separate cable just for power, I wanted the Pi to communicate directly with my laptop through a single USB data cable.\n\nThe idea was to make the Pi Zero act as a USB Ethernet device. The laptop would remain connected to the internet through Wi-Fi, while the Pi would communicate with the laptop through the USB connection.\n\n[ Laptop\n     |\n     | USB data cable\n     |\n   Pi Zero ]\n\nThis would give me a direct network connection to the Pi without needing an Ethernet adapter or a serial interface.\n\nOnce the USB network was established, I could simply SSH into the Pi.\n\n{[\nssh root@192.168.7.2\n]}\n\nThis reduced the number of wires and hardware I needed to carry and made the development setup much cleaner.\n\nThe way I achieved this was by using the USB gadget functionality available in the Linux kernel.\n\nThe Raspberry Pi Zero's USB controller can operate in peripheral mode. Instead of the Pi acting as a USB host, the Pi itself becomes a USB device connected to the laptop.\n\nI configured the USB controller to use the dwc2 driver, which supports peripheral and gadget operation.\n\nThe first step was opening the Linux kernel configuration from Buildroot:\n\n{[\nmake linux-menuconfig\n]}\n\nInside the USB configuration, I disabled the older dwc_otg driver and enabled the dwc2 driver.\n\nThe relevant configuration was:\n\n{[\n# CONFIG_USB_DWCOTG is not set\nCONFIG_USB_DWC2=y\nCONFIG_USB_DWC2_PERIPHERAL=y\n# CONFIG_USB_DWC2_HOST is not set\n# CONFIG_USB_DWC2_DUAL_ROLE is not set\n]}\n\nThe USB gadget framework also needs to be enabled, along with the Ethernet gadget:\n\n{[\nCONFIG_USB_GADGET=y\nCONFIG_USB_ETH=y\nCONFIG_USB_ETH_RNDIS=y\nCONFIG_USB_LIBCOMPOSITE=y\n]}\n\nThis allows Linux to expose the Pi as a USB Ethernet device.\n\nThe next step was configuring the Raspberry Pi firmware.\n\nI enabled the installation of DTB overlays through the Raspberry Pi firmware configuration in Buildroot. This is important because the dwc2 device-tree overlay needs to be available on the boot partition.\n\nThen I added the following to config.txt:\n\n{[\ndtoverlay=dwc2,dr_mode=peripheral\n]}\n\nThe dr_mode=peripheral parameter is important because we want the Pi to operate as a USB peripheral.\n\nAfter that, the dwc2 and g_ether modules need to be loaded.\n\nOne way to do this is through cmdline.txt:\n\n{[\nconsole=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootwait modules-load=dwc2,g_ether elevator=noop quiet\n]}\n\nHowever, because my Buildroot system uses BusyBox init, I used an init script instead to make sure the modules were loaded and the USB network interface was configured during boot.\n\nThe basic operations performed by the script are:\n\n{[\nmodprobe dwc2\nmodprobe g_ether\nsleep 1\nip link set usb0 up\nip addr add 192.168.7.2/24 dev usb0\n]}\n\nOnce the gadget driver is loaded, Linux creates a network interface called usb0 on the Pi.\n\nI assigned the Pi:\n\n{[\n192.168.7.2/24\n]}\n\nThe laptop then uses the other address on the same subnet:\n\n{[\n192.168.7.1/24\n]}\n\nThe resulting connection is essentially a small private Ethernet network running over USB.\n\n[ Laptop\n  192.168.7.1\n       |\n       | USB\n       |\n  192.168.7.2\n   Pi Zero ]\n\nOn the laptop, I first checked for the USB network interface:\n\n{[\nip a | grep enx\n]}\n\nLinux exposes the Pi as a network interface with a name similar to:\n\n{[\nenxXXXXXXXXXXXX\n]}\n\nI then assigned the laptop its address:\n\n{[\nsudo ip addr add 192.168.7.1/24 dev enxXXXXXXXXXXXX\n]}\n\nWith both devices on the same subnet, I could verify the connection using:\n\n{[\nping -c3 192.168.7.2\n]}\n\nOnce the ping worked, the network connection was ready.\n\nThe last step was SSH.\n\nFor the SSH server, I used Dropbear because it is lightweight and suitable for an embedded Linux system.\n\nIn Buildroot, Dropbear can be enabled under:\n\n{[\nTarget packages\n  → Networking applications\n    → dropbear\n]}\n\nAfter Dropbear was running, I could access the Pi directly over the USB network:\n\n{[\nssh root@192.168.7.2\n]}\n\nAt this point, the entire development connection was running through a single USB cable.\n\nThe laptop still had Wi-Fi for its normal internet connection, while the Pi used the USB connection to communicate with the laptop.\n\n[ Laptop\n  Wi-Fi → Internet\n\n  USB\n   |\n   ↓\n\n Pi Zero v1.3\n 192.168.7.2 ]\n\nIf the setup doesn't work, there are a few useful things to check.\n\nFirst, verify that dwc2 is loaded:\n\n{[\ndmesg | grep -i dwc\n]}\n\nThen check whether the USB device controller exists:\n\n{[\nls /sys/class/udc/\n]}\n\nFinally, check whether usb0 exists:\n\n{[\nip a\n]}\n\nIf usb0 is present with the expected IP address, the USB networking side is working.\n\nIf dwc_otg is being loaded instead of dwc2, check the kernel configuration and make sure the old driver is disabled.\n\nIf /sys/class/udc/ is empty, check that the dwc2 overlay is present in config.txt and that DTB overlays were installed by Buildroot.\n\nIf usb0 doesn't appear, manually loading the modules can help identify whether the problem is with the boot-time initialization:\n\n{[\nmodprobe dwc2\nmodprobe g_ether\n]}\n\nIf SSH times out, test the network connection first:\n\n{[\nping -c3 192.168.7.2\n]}\n\nIf the Pi responds to ping but SSH doesn't work, then the problem is likely with the Dropbear configuration rather than the USB network itself.\n\nAfter changing the kernel configuration, I rebuilt the Buildroot system:\n\n{[\nmake linux-dirclean\nmake -j$(nproc)\n]}\n\nThe end result was much simpler than my original setup.\n\nInstead of carrying a USB-to-TTL adapter and a separate power cable just to work with the Pi, I could connect the Pi directly to my laptop with a USB data cable and SSH into it over the resulting USB Ethernet connection.\n\nThe Pi still had access to the laptop's network environment through the laptop's Wi-Fi connection, while the USB cable handled the direct communication between the two devices.\n\nWhat started as a small problem with too many cables turned into a useful little embedded Linux setup.\n\nOne USB cable, USB Ethernet, and SSH.",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "SSH Over USB on a Raspberry Pi Zero v1.3\n\nWorking with a Raspberry Pi Zero v1.3 is great until you actually have to develop on it.\n\nThe Pi Zero v1.3 does not have a built-in network adapter, Wi-Fi, Bluetooth, or an Ethernet port. This makes something as simple as accessing the terminal remotely a little inconvenient.\n\nInitially, my setup required a USB-to-TTL adapter for serial access and a separate power cable for powering the Pi. While this worked, carrying multiple cables and adapters every time I wanted to work with the Pi was unnecessary.\n\nI wanted to simplify the setup.\n\nInstead of carrying a USB-to-TTL adapter for serial communication and a separate cable just for power, I wanted the Pi to communicate directly with my laptop through a single USB data cable.\n\nThe idea was to make the Pi Zero act as a USB Ethernet device. The laptop would remain connected to the internet through Wi-Fi, while the Pi would communicate with the laptop through the USB connection.\n\n"
+        },
+        {
+          "type": "highlight",
+          "content": " Laptop\n     |\n     | USB data cable\n     |\n   Pi Zero "
+        },
+        {
+          "type": "text",
+          "content": "\n\nThis would give me a direct network connection to the Pi without needing an Ethernet adapter or a serial interface.\n\nOnce the USB network was established, I could simply SSH into the Pi.\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nssh root@192.168.7.2\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThis reduced the number of wires and hardware I needed to carry and made the development setup much cleaner.\n\nThe way I achieved this was by using the USB gadget functionality available in the Linux kernel.\n\nThe Raspberry Pi Zero's USB controller can operate in peripheral mode. Instead of the Pi acting as a USB host, the Pi itself becomes a USB device connected to the laptop.\n\nI configured the USB controller to use the dwc2 driver, which supports peripheral and gadget operation.\n\nThe first step was opening the Linux kernel configuration from Buildroot:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nmake linux-menuconfig\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nInside the USB configuration, I disabled the older dwc_otg driver and enabled the dwc2 driver.\n\nThe relevant configuration was:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\n# CONFIG_USB_DWCOTG is not set\nCONFIG_USB_DWC2=y\nCONFIG_USB_DWC2_PERIPHERAL=y\n# CONFIG_USB_DWC2_HOST is not set\n# CONFIG_USB_DWC2_DUAL_ROLE is not set\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThe USB gadget framework also needs to be enabled, along with the Ethernet gadget:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nCONFIG_USB_GADGET=y\nCONFIG_USB_ETH=y\nCONFIG_USB_ETH_RNDIS=y\nCONFIG_USB_LIBCOMPOSITE=y\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThis allows Linux to expose the Pi as a USB Ethernet device.\n\nThe next step was configuring the Raspberry Pi firmware.\n\nI enabled the installation of DTB overlays through the Raspberry Pi firmware configuration in Buildroot. This is important because the dwc2 device-tree overlay needs to be available on the boot partition.\n\nThen I added the following to config.txt:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\ndtoverlay=dwc2,dr_mode=peripheral\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThe dr_mode=peripheral parameter is important because we want the Pi to operate as a USB peripheral.\n\nAfter that, the dwc2 and g_ether modules need to be loaded.\n\nOne way to do this is through cmdline.txt:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nconsole=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootwait modules-load=dwc2,g_ether elevator=noop quiet\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nHowever, because my Buildroot system uses BusyBox init, I used an init script instead to make sure the modules were loaded and the USB network interface was configured during boot.\n\nThe basic operations performed by the script are:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nmodprobe dwc2\nmodprobe g_ether\nsleep 1\nip link set usb0 up\nip addr add 192.168.7.2/24 dev usb0\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nOnce the gadget driver is loaded, Linux creates a network interface called usb0 on the Pi.\n\nI assigned the Pi:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\n192.168.7.2/24\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThe laptop then uses the other address on the same subnet:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\n192.168.7.1/24\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThe resulting connection is essentially a small private Ethernet network running over USB.\n\n"
+        },
+        {
+          "type": "highlight",
+          "content": " Laptop\n  192.168.7.1\n       |\n       | USB\n       |\n  192.168.7.2\n   Pi Zero "
+        },
+        {
+          "type": "text",
+          "content": "\n\nOn the laptop, I first checked for the USB network interface:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nip a | grep enx\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nLinux exposes the Pi as a network interface with a name similar to:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nenxXXXXXXXXXXXX\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nI then assigned the laptop its address:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nsudo ip addr add 192.168.7.1/24 dev enxXXXXXXXXXXXX\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nWith both devices on the same subnet, I could verify the connection using:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nping -c3 192.168.7.2\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nOnce the ping worked, the network connection was ready.\n\nThe last step was SSH.\n\nFor the SSH server, I used Dropbear because it is lightweight and suitable for an embedded Linux system.\n\nIn Buildroot, Dropbear can be enabled under:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nTarget packages\n  → Networking applications\n    → dropbear\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nAfter Dropbear was running, I could access the Pi directly over the USB network:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nssh root@192.168.7.2\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nAt this point, the entire development connection was running through a single USB cable.\n\nThe laptop still had Wi-Fi for its normal internet connection, while the Pi used the USB connection to communicate with the laptop.\n\n"
+        },
+        {
+          "type": "highlight",
+          "content": " Laptop\n  Wi-Fi → Internet\n\n  USB\n   |\n   ↓\n\n Pi Zero v1.3\n 192.168.7.2 "
+        },
+        {
+          "type": "text",
+          "content": "\n\nIf the setup doesn't work, there are a few useful things to check.\n\nFirst, verify that dwc2 is loaded:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\ndmesg | grep -i dwc\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThen check whether the USB device controller exists:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nls /sys/class/udc/\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nFinally, check whether usb0 exists:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nip a\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nIf usb0 is present with the expected IP address, the USB networking side is working.\n\nIf dwc_otg is being loaded instead of dwc2, check the kernel configuration and make sure the old driver is disabled.\n\nIf /sys/class/udc/ is empty, check that the dwc2 overlay is present in config.txt and that DTB overlays were installed by Buildroot.\n\nIf usb0 doesn't appear, manually loading the modules can help identify whether the problem is with the boot-time initialization:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nmodprobe dwc2\nmodprobe g_ether\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nIf SSH times out, test the network connection first:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nping -c3 192.168.7.2\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nIf the Pi responds to ping but SSH doesn't work, then the problem is likely with the Dropbear configuration rather than the USB network itself.\n\nAfter changing the kernel configuration, I rebuilt the Buildroot system:\n\n"
+        },
+        {
+          "type": "code",
+          "content": "\nmake linux-dirclean\nmake -j$(nproc)\n"
+        },
+        {
+          "type": "text",
+          "content": "\n\nThe end result was much simpler than my original setup.\n\nInstead of carrying a USB-to-TTL adapter and a separate power cable just to work with the Pi, I could connect the Pi directly to my laptop with a USB data cable and SSH into it over the resulting USB Ethernet connection.\n\nThe Pi still had access to the laptop's network environment through the laptop's Wi-Fi connection, while the USB cable handled the direct communication between the two devices.\n\nWhat started as a small problem with too many cables turned into a useful little embedded Linux setup.\n\nOne USB cable, USB Ethernet, and SSH."
+        }
+      ]
+    }
+  ]
 }

@@ -86,6 +86,88 @@ function NanoViewer({ entry, onClose }) {
                   </div>
                 )
 
+              case 'highlight':
+                return (
+                  <div key={index}>
+                    <p className="block-text">
+                      <span className="block-highlight">
+                        {block.content || ''}
+                      </span>
+                    </p>
+                    <br />
+                  </div>
+                )
+
+              case 'code':
+                return (
+                  <div className="block-code" key={index}>
+                   <button
+  className="block-code-copy"
+  aria-label="Copy code"
+  title="Copy code"
+  onClick={async (event) => {
+    try {
+      await navigator.clipboard.writeText(block.content || '')
+
+      const button = event.currentTarget
+      button.innerHTML = '✓'
+
+      setTimeout(() => {
+        button.innerHTML = `
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="9" y="9" width="11" height="11" rx="1" />
+            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+          </svg>
+        `
+      }, 1200)
+    } catch {
+      const button = event.currentTarget
+      button.innerHTML = '×'
+
+      setTimeout(() => {
+        button.innerHTML = `
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="9" y="9" width="11" height="11" rx="1" />
+            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+          </svg>
+        `
+      }, 1200)
+    }
+  }}
+>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <rect x="9" y="9" width="11" height="11" rx="1" />
+    <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+  </svg>
+</button>
+
+                    <pre>
+                      <code>{block.content || ''}</code>
+                    </pre>
+                  </div>
+                )
+
               case 'image':
                 return (
                   <div className="block-image" key={index}>
