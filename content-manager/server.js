@@ -36,6 +36,58 @@ async function readJson(file, fallback = null) {
   try { return JSON.parse(await fs.readFile(file, 'utf8')); }
   catch { return fallback; }
 }
+function parseBody(body) {
+  const out = [];
+  let i = 0, text = '';
+  const flush = () => { if (text) { out.push({ type: 'text', content: text }); text = ''; } };
+  while (i < body.length) {
+    if (body.startsWith('{{image:', i) || body.startsWith('{{video:', i) || body.startsWith('{{doc:', i)) {
+      flush();
+      const end = body.indexOf('}}', i + 2);
+      if (end !== -1) {
+        const inner = body.slice(i + 2, end);
+        const split = inner.indexOf(':');
+        const kind = inner.slice(0, split);
+        const value = inner.slice(split + 1);
+        const parts = value.split('|');
+        out.push({ type: kind, src: safeName(parts.shift()), ...(parts.length ? { caption: parts.join('|').trim() } : {}) });
+        i = end + 2;
+        continue;
+      }
+    }
+    if (body.startsWith('{[', i)) {
+      flush();
+      const end = body.indexOf(']}', i + 2);
+      if (end !== -1) {
+        out.push({ type: 'code', content: body.slice(i + 2, end) });
+        i = end + 2;
+        continue;
+      }
+    }
+    if (body[i] === '[') {
+      const end = body.indexOf(']', i + 1);
+      if (end !== -1) {
+        flush();
+        out.push({ type: 'highlight', content: body.slice(i + 1, end) });
+        i = end + 1;
+        continue;
+      }
+    }
+    text += body[i++];
+  }
+  flush();
+  return out;
+}
+function blocksToBody(blocks = []) {
+  return blocks.map(b => {
+    if (b.type === 'text') return b.content || '';
+    if (b.type === 'highlight') return `[${b.content || ''}]`;
+    if (b.type === 'code') return `{[${b.content || ''}]}`;
+    if (['image','video','doc'].includes(b.type)) return `{{${b.type}:${b.src || ''}${b.caption ? `|${b.caption}` : ''}}}`;
+    return '';
+  }).filter(Boolean).join('\n\n');
+}
+
 async function rebuildIndex() {
   const result = { generated: new Date().toISOString(), projects: [], blogs: [] };
   for (const section of ['projects', 'blogs']) {
@@ -53,6 +105,7 @@ async function rebuildIndex() {
         endDate: meta.endDate ?? '',
         tags: Array.isArray(meta.tags) ? meta.tags : [],
         description: meta.description || '',
+        body: typeof meta.body === 'string' ? meta.body : blocksToBody(meta.blocks || []),
         blocks: Array.isArray(meta.blocks) ? meta.blocks : []
       });
     }
@@ -110,12 +163,17 @@ app.post('/api/content/:section', async (req, res) => {
       endDate: String(body.endDate || '').trim(),
       tags: Array.isArray(body.tags) ? body.tags.map(String).map(x => x.trim()).filter(Boolean) : [],
       description: String(body.description || '').trim(),
-      blocks: Array.isArray(body.blocks) ? body.blocks.map(b => ({
-        type: ['text','image','video','doc'].includes(b.type) ? b.type : 'text',
-        ...(b.src ? { src: safeName(b.src) } : {}),
-        ...(b.caption ? { caption: String(b.caption) } : {}),
-        ...(b.content !== undefined ? { content: String(b.content) } : {})
-      })) : (existing.blocks || [])
+      body: typeof body.body === 'string' ? body.body : blocksToBody(body.blocks || existing.blocks || []),
+      blocks: typeof body.body === 'string'
+        ? parseBody(body.body)
+        : (Array.isArray(body.blocks) ? body.blocks.map(b => ({
+            type: ['text','image','video','doc','highlight','code'].includes(b.type) ? b.type : 'text',
+            ...(b.src ? { src: safeName(b.src) } : {}),
+            ...(b.caption ? { caption: String(b.caption) } : {}),
+            ...(b.content !== undefined ? { content: String(b.content) } : {}),
+            ...(b.language ? { language: String(b.language) } : {}),
+            ...(b.label ? { label: String(b.label) } : {})
+          })) : (existing.blocks || []))
     };
     if (!meta.title) throw new Error('Title is required');
     await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
