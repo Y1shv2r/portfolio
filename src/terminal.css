@@ -530,28 +530,73 @@
 
 /* ===== SOCIAL BUTTON GRID ===== */
 
+/* ================================
+   SOCIAL GRID — 3 TOP / 2 BOTTOM
+   ================================ */
+
 #footer-right .social-grid {
   display: grid !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+
+  grid-template-columns: repeat(6, 1fr) !important;
+  grid-template-rows: 44px 44px !important;
+
   grid-auto-flow: row;
+
   width: 360px;
   max-width: 100%;
+
+  gap: 0 !important;
+  margin: 0;
+  padding: 0;
 }
 
-#footer-right .social-grid > .social-btn:nth-child(1),
-#footer-right .social-grid > .social-btn:nth-child(2),
-#footer-right .social-grid > .social-btn:nth-child(3) {
-  grid-column: span 2 !important;
-}
-
-#footer-right .social-grid > .social-btn:nth-child(4),
-#footer-right .social-grid > .resume-btn {
-  grid-column: span 3 !important;
-}
-
-/* Keep every button filling its grid cell */
+/* Every cell has the same border */
 #footer-right .social-grid > .social-btn,
 #footer-right .social-grid > .resume-btn {
-  width: 100%;
   box-sizing: border-box;
+
+  width: 100% !important;
+  height: 44px !important;
+
+  margin: 0 !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #252525 !important;
+  border-radius: 0 !important;
+
+  grid-column: auto;
+  grid-row: auto;
+}
+
+/* GitHub */
+#footer-right .social-grid > .social-btn:nth-child(1) {
+  grid-column: 1 / span 2 !important;
+  grid-row: 1 !important;
+}
+
+/* LinkedIn */
+#footer-right .social-grid > .social-btn:nth-child(2) {
+  grid-column: 3 / span 2 !important;
+  grid-row: 1 !important;
+}
+
+/* X */
+#footer-right .social-grid > .social-btn:nth-child(3) {
+  grid-column: 5 / span 2 !important;
+  grid-row: 1 !important;
+}
+
+/* Email */
+#footer-right .social-grid > .social-btn:nth-child(4) {
+  grid-column: 1 / span 3 !important;
+  grid-row: 2 !important;
+}
+
+/* Resume */
+#footer-right .social-grid > .resume-btn {
+  grid-column: 4 / span 3 !important;
+  grid-row: 2 !important;
 }
