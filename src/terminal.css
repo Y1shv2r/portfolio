@@ -527,3 +527,31 @@
 .nano-key {
   color: #aaa;
 }
+
+/* ===== SOCIAL BUTTON GRID ===== */
+
+#footer-right .social-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  grid-auto-flow: row;
+  width: 360px;
+  max-width: 100%;
+}
+
+#footer-right .social-grid > .social-btn:nth-child(1),
+#footer-right .social-grid > .social-btn:nth-child(2),
+#footer-right .social-grid > .social-btn:nth-child(3) {
+  grid-column: span 2 !important;
+}
+
+#footer-right .social-grid > .social-btn:nth-child(4),
+#footer-right .social-grid > .resume-btn {
+  grid-column: span 3 !important;
+}
+
+/* Keep every button filling its grid cell */
+#footer-right .social-grid > .social-btn,
+#footer-right .social-grid > .resume-btn {
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -49,15 +49,6 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
 
   /*
    * Resolve paths like a small Unix shell.
-   *
-   * Examples:
-   *   .
-   *   ..
-   *   ~/projects
-   *   ~/projects/krishi-cobot
-   *   meta.json
-   *   krishi-cobot
-   *   krishi-cobot/meta.json
    */
   const resolvePath = (inputPath) => {
     if (!inputPath || inputPath === '.') {
@@ -198,10 +189,6 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
 
   /*
    * Find an entry from a full virtual path.
-   *
-   * Examples:
-   *   ~/projects/krishi-cobot
-   *   ~/projects/krishi-cobot/meta.json
    */
   const findEntryFromPath = (path) => {
     const match = path.match(
@@ -315,7 +302,6 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
           type: 'output',
           text: 'Email      →  yashvardhan.k2004@gmail.com',
         },
-       
       ],
     }
 
@@ -460,13 +446,6 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
 
     /*
      * nano
-     *
-     * Supported:
-     *
-     * nano krishi-cobot
-     * nano ~/projects/krishi-cobot
-     * nano meta.json
-     * nano ~/projects/krishi-cobot/meta.json
      */
     else if (cmd === 'nano') {
       const target = args[0]
@@ -521,7 +500,10 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
         /*
          * nano on regular static file
          */
-        else if (path === '~/about.md' || path === '~/contact.md') {
+        else if (
+          path === '~/about.md' ||
+          path === '~/contact.md'
+        ) {
           newLines.push({
             type: 'error',
             text: `nano: ${target}: Read-only file`,
@@ -587,7 +569,11 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
             if (result) {
               newLines.push({
                 type: 'output',
-                text: JSON.stringify(result.entry, null, 2),
+                text: JSON.stringify(
+                  result.entry,
+                  null,
+                  2
+                ),
               })
 
               newLines.push({
@@ -899,11 +885,6 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
           ref={outputRef}
           onClick={() => inputRef.current?.focus()}
         >
-
-           
-
-         
-
           {lines.map((line, index) => {
 
             /*
@@ -994,7 +975,6 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
               </span>
             )
           })}
-
         </div>
 
       </div>
@@ -1081,60 +1061,73 @@ function Terminal({ onOpenResume, onOpenProject, onOpenBlog }) {
 
         <div id="footer-right">
 
-          <div className="social-btns">
+          <div className="social-grid">
 
-  <a
-    className="social-btn"
-    href="https://github.com/Y1shv2r"
-    aria-label="GitHub"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.7-1.6 6.7-7A5.4 5.4 0 0 0 19.3 4 5 5 0 0 0 19.2.8S18 .4 15 2.4a13.4 13.4 0 0 0-7 0C5 0.4 3.8.8 3.8.8A5 5 0 0 0 3.7 4a5.4 5.4 0 0 0-1.4 3.5c0 5.4 3.4 6.6 6.7 7A4.8 4.8 0 0 0 8 18v4" />
-      <path d="M8 18c-3.6 1.6-4-1.8-4-1.8" />
-    </svg>
-  </a>
+            {/* GitHub */}
+            <a
+              className="social-btn"
+              href="https://github.com/Y1shv2r"
+              aria-label="GitHub"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.7-1.6 6.7-7A5.4 5.4 0 0 0 19.3 4 5 5 0 0 0 19.2.8S18 .4 15 2.4a13.4 13.4 0 0 0-7 0C5 .4 3.8.8 3.8.8A5 5 0 0 0 3.7 4a5.4 5.4 0 0 0-1.4 3.5c0 5.4 3.4 6.6 6.7 7A4.8 4.8 0 0 0 8 18v4" />
+                <path d="M8 18c-3.6 1.6-4-1.8-4-1.8" />
+              </svg>
+            </a>
 
-  <a
-    className="social-btn"
-    href="https://linkedin.com/in/yash-vardhan-kumar"
-    aria-label="LinkedIn"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z" />
-      <rect x="2" y="9" width="4" height="12" rx="1" />
-      <circle cx="4" cy="4" r="2" />
-    </svg>
-  </a>
+            {/* LinkedIn */}
+            <a
+              className="social-btn"
+              href="https://linkedin.com/in/yash-vardhan-kumar"
+              aria-label="LinkedIn"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z" />
+                <rect x="2" y="9" width="4" height="12" rx="1" />
+                <circle cx="4" cy="4" r="2" />
+              </svg>
+            </a>
 
-  <a
-    className="social-btn"
-    href="mailto:yashvardhan.k2004@gmail.com"
-    aria-label="Email"
-  >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="1" />
-      <path d="m3 7 9 6 9-6" />
-    </svg>
-  </a>
+            {/* Twitter / X */}
+            <a
+              className="social-btn"
+              href="https://x.com/its_yashvk"
+              aria-label="Twitter / X"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              X
+            </a>
 
-</div>
+            {/* Email */}
+            <a
+              className="social-btn"
+              href="mailto:yashvardhan.k2004@gmail.com"
+              aria-label="Email"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="1" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+            </a>
 
-          <button
-            className="resume-btn"
-            onClick={onOpenResume}
-          >
-            RESUME
-          </button>
+            {/* Resume */}
+            <button
+              className="resume-btn"
+              onClick={onOpenResume}
+            >
+              RESUME
+            </button>
+
+          </div>
 
         </div>
 
       </div>
-
-     
 
     </section>
   )

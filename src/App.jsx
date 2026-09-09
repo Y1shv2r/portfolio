@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+
 import Hero from './components/Hero'
 import Terminal from './components/Terminal'
 import NanoViewer from './components/NanoViewer'
@@ -19,9 +20,10 @@ function getEntryFromPath(content, pathname) {
   const section = match[1]
   const slug = match[2]
 
-  const entries = section === 'projects'
-    ? content.projects || []
-    : content.blogs || []
+  const entries =
+    section === 'projects'
+      ? content.projects || []
+      : content.blogs || []
 
   const entry = entries.find((item) => item.slug === slug)
 
@@ -49,7 +51,7 @@ function App() {
         setContent(data)
       })
       .catch((error) => {
-        console.error(error)
+        console.error('Content loading error:', error)
       })
   }, [])
 
