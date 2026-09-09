@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Yash-Vardhan-Kumar</title>
+
+    <script>
+      const redirect =
+        window.location.pathname +
+        window.location.search +
+        window.location.hash
+
+      sessionStorage.setItem('spaRedirect', redirect)
+
+      window.location.replace('/')
+    </script>
+  </head>
+
+  <body>
+    Loading...
+  </body>
+</html>
